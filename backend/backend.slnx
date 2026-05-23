@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/RssFeedAspire/RssFeedAspire.csproj" />
+    <Project Path="src/RssFeedParser/RssFeedParser.csproj" />
+    <Project Path="src/RssFeedWebApp/RssFeedWebApp.csproj" />
+  </Folder>
+</Solution>

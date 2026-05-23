@@ -1,21 +1,52 @@
-# If you prefer the allow list template instead of the deny list, see community template:
-# https://github.com/github/gitignore/blob/main/community/Golang/Go.AllowList.gitignore
-#
-# Binaries for programs and plugins
-*.exe
-*.exe~
-*.dll
-*.so
-*.dylib
+##   --- .NET / C# Core Artifacts ---
+## Target directories (Build outputs)
+Bin/
+obj/
+[Bb]in/
+[Oo]bj/
+*.publish.xml
 
-# Test binary, built with `go test -c`
-*.test
+##   --- IDE & Tooling Configurations ---
+## Visual Studio
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
 
-# Output of the go coverage tool, specifically when used with LiteIDE
-*.out
+## JetBrains Rider / Resharper
+.idea/
+*.sln.DotSettings.user
 
-# Dependency directories (remove the comment below to include it)
-# vendor/
+## Visual Studio Code
+.vscode/
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/tasks.json
 
-# Go workspace file
-go.work
+##   --- .NET Aspire Specifics ---
+## AppHost generated secrets and temporary execution data
+.aspire/
+
+##   --- Package & Dependency Management ---
+## User-secrets secret store id file
+*.usersecrets.id.json
+
+## Paket dependency manager
+.paket/
+
+## Node/Frontend dependencies (if using Blazor/Yarp/Spa proxies)
+node_modules/
+
+##   --- OS & Miscellaneous ---
+## Windows thumbnail caches
+Thumbs.db
+ehthumbs.db
+
+## macOS files
+.DS_Store
+
+##   --- User Environments / Secrets ---
+## Never commit real app secrets, settings overrides, or connection strings
+*.local.json
+appsettings.Development.json
