@@ -50,3 +50,20 @@ ehthumbs.db
 ## Never commit real app secrets, settings overrides, or connection strings
 *.local.json
 appsettings.Development.json
+
+##   --- Frontend Specifics ---
+frontend/dist/
+frontend/dist-ssr/
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+*.ntvs*
+*.njsproj
+*.sw?
+
+## Antigravity CLI Tooling
+.antigravitycli/

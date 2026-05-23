@@ -14,8 +14,8 @@ namespace RssFeedWebApp
             var app = builder.Build();
             
             
-            app.MapGet("/", () => "Hello World!");
-            app.MapPost("/api/parse", async (HttpContext context, IParser parser) =>
+            app.MapGet("/api/heartbeat", () => "OK");
+            app.MapPost("/api/parsefeed", async (HttpContext context, IParser parser) =>
             {
                 context.Request.EnableBuffering();
                 if (context.Request.ContentLength == 0)

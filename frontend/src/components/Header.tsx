@@ -1,0 +1,73 @@
+interface HeaderProps {
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
+  starredOnly: boolean;
+  setStarredOnly: (starred: boolean) => void;
+  onAddFeedClick: () => void;
+}
+
+export default function Header({
+  searchQuery,
+  setSearchQuery,
+  starredOnly,
+  setStarredOnly,
+  onAddFeedClick
+}: HeaderProps) {
+  return (
+    <header className="flex items-center justify-between px-6 py-4 bg-sidebar/85 backdrop-blur-md border-b border-border-custom z-10 h-[72px]">
+      <div className="flex items-center gap-3">
+        <div className="flex items-center justify-center w-9.5 h-9.5 bg-gradient-to-br from-brand to-brand-hover text-white rounded-xl font-bold text-xl shadow-[0_4px_10px_rgba(99,102,241,0.25)]">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 11a9 9 0 0 1 9 9" />
+            <path d="M4 4a16 16 0 0 1 16 16" />
+            <circle cx="5" cy="19" r="1" fill="currentColor" />
+          </svg>
+        </div>
+        <span className="text-xl font-bold bg-gradient-to-r from-primary to-brand bg-clip-text text-transparent">FeedlyLite</span>
+      </div>
+
+      <div className="flex items-center gap-4">
+        {/* Search bar */}
+        <div className="relative flex items-center w-64 max-sm:w-44">
+          <span className="absolute left-3 text-muted pointer-events-none flex items-center">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.3-4.3" />
+            </svg>
+          </span>
+          <input
+            type="text"
+            placeholder="Search..."
+            className="w-full py-2 pl-9 pr-4 bg-app border border-border-custom rounded-xl text-primary text-sm transition-all focus:border-brand focus:ring-3 focus:ring-brand-light focus:outline-none placeholder:text-muted"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+
+        {/* Toggle Starred Filter */}
+        <button 
+          className={`flex items-center gap-2 px-3 py-2 bg-card border border-border-custom rounded-xl text-secondary text-sm cursor-pointer transition-all hover:bg-card-hover hover:text-primary ${starredOnly ? 'bg-brand-light! border-brand! text-brand!' : ''}`}
+          onClick={() => setStarredOnly(!starredOnly)}
+          title="Show Starred Only"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill={starredOnly ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+          </svg>
+          <span className="max-sm:hidden">Starred</span>
+        </button>
+
+        {/* Add Feed Button */}
+        <button 
+          className="flex items-center gap-2 px-4 py-2 bg-brand text-white border-0 rounded-xl text-sm font-medium cursor-pointer transition-all hover:bg-brand-hover hover:-translate-y-px active:translate-y-0 shadow-sm"
+          onClick={onAddFeedClick}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M5 12h14" />
+            <path d="M12 5v14" />
+          </svg>
+          <span className="max-sm:hidden">Add Feed</span>
+        </button>
+      </div>
+    </header>
+  );
+}
