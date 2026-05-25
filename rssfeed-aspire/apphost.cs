@@ -2,6 +2,7 @@
 #:package Aspire.Hosting.JavaScript@13.3.5
 #:package Aspire.Hosting.PostgreSQL@13.3.5
 #:package Aspire.Hosting.Python@13.3.5
+#:package CommunityToolkit.Aspire.Hosting.Ollama@13.3.0
 #:sdk Aspire.AppHost.Sdk@13.3.5
 #:project ../backend/src/RssFeedWebApp/RssFeedWebApp.csproj
 
@@ -19,9 +20,19 @@ var webApi = builder.AddProject<Projects.RssFeedWebApp>("rssfeedwebapp")
                     .WaitForStart(postgres)
                     .WithReference(db);
 
+//#####################AI#####################################
+var ollama = builder.AddOllama("ollama")
+                    .WithDataVolume()
+                    .WithOpenWebUI();
+        
+var chatmodel = ollama.AddModel("chat", "llama3.2");
+
+
 var ai = builder.AddPythonApp(name: "rssfeedai", appDirectory: "../ai", scriptPath: "app.py")
                     .WithReference(db)
-                    .WaitFor(db);
+                    .WithReference(chatmodel)
+                    .WaitFor(db)
+                    .WaitFor(chatmodel);
 
 //#####################Frontend################################
 var frontendservice = builder.AddViteApp(name: "rssfeedfrontend", appDirectory: "../frontend")
