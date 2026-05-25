@@ -6,8 +6,11 @@ import uvicorn
 from features.crawl.crawl import Crawl
 from services.llm import LLMService
 
-CHAT_URI = os.getenv("CHAT_URI")
-CHAT_MODEL = os.getenv("CHAT_MODEL")
+# CHAT_URI = os.getenv("CHAT_URI") 
+# CHAT_MODEL = os.getenv("CHAT_MODEL")
+
+CHAT_URI = "http://localhost:36989/v1/chat/completions"
+CHAT_MODEL = "llama3.2"
 
 app = FastAPI()
 
@@ -21,7 +24,7 @@ async def crawl(url: str):
     result = await crawler.run()
     llm_service = LLMService(url=CHAT_URI, model=CHAT_MODEL, config={})
     llm_response = llm_service.call(f"Summarize the crawl result: {result}")
-    return {"status": "crawling", "url": url, "result": llm_response}
+    return {"url": url, "result": llm_response}
 
 if __name__ == "__main__":
     # Aspire automatically passes configured ports, but we fallback to 8000
