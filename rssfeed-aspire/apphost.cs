@@ -31,14 +31,14 @@ var ai = builder.AddUvicornApp(name: "rssfeedai", appDirectory: "../ai", app: "a
                     .WaitFor(chatmodel);
 
 //#####################BFF#####################################
-var webApi = builder.AddProject<Projects.RssFeedWebApp>("rssfeedwebapp")
+var bff = builder.AddProject<Projects.RssFeedWebApp>("rssfeedwebapp")
                     .WaitForStart(postgres)
                     .WithReference(db)
                     .WithReference(ai);
 
 //#####################Frontend################################
 var frontendservice = builder.AddViteApp(name: "rssfeedfrontend", appDirectory: "../frontend")
-                             .WithReference(webApi)
-                             .WaitFor(webApi);
+                             .WithReference(bff)
+                             .WaitFor(bff);
 
 builder.Build().Run();

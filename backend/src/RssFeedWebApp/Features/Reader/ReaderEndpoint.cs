@@ -1,5 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
-using RssFeedWebApp.Features.Reader.Services;
+using Microsoft.Extensions.Options;
+using RssFeedWebApp.Features.Reader.Models;
+using RssFeedWebApp.Models.Configuration;
+
 
 namespace RssFeedWebApp.Features.Reader;
 
@@ -7,13 +10,14 @@ public static class ReaderEndpoint
 {
     public static IEndpointRouteBuilder MapReaderEndpoint(this IEndpointRouteBuilder endpoints)
     {
-        endpoints.MapGet("/api/reader", HandleReaderAsync);
+        endpoints.MapPost("/api/reader", HandleReaderAsync);
         return endpoints;
     }
     
-    private static async Task<IResult> HandleReaderAsync([FromQuery] string url, IFetchUrlService  fetchUrlService)
+    private static async Task<IResult> HandleReaderAsync([FromBody] CrawlRequest request, IHttpClientFactory clientFactory, IOptions<AppSettings> settings)
     {
-        if (string.IsNullOrEmpty(url))
+        ArgumentNullException.ThrowIfNull(request);
+        if (string.IsNullOrEmpty(request.Url))
         {
             return Results.Problem(
                 detail: "No URL provided",
@@ -21,9 +25,21 @@ public static class ReaderEndpoint
                 title: "No URL provided"
             );
         }
-
-        var html = await fetchUrlService.GetUrlAsync(url);
-
-        return Results.Ok(html);
+        var crawlerConfiguration = settings.Value.AiCrawlerService;
+        var client = clientFactory.CreateClient("aicrawler");
+        var response = await client.GetAsync(ConstructURL(crawlerConfiguration.BaseUrl, crawlerConfiguration.CrawlEndpoint, request.Url));
+        if (!response.IsSuccessStatusCode)
+        {
+            return Results.Problem(
+                detail: response.ReasonPhrase,
+                statusCode: (int)response.StatusCode,
+                title: "Failed to crawl url");
+        }
+        var content = await response.Content.ReadAsStringAsync();
+        var crawlResponse = System.Text.Json.JsonSerializer.Deserialize<CrawlResponse>(content);
+        return Results.Ok(crawlResponse);
     }
+
+    private static string ConstructURL(string baseurl, string endpointUrl, string pageUrl)
+        =>  $"{baseurl}{endpointUrl}?url={pageUrl}";
 }
