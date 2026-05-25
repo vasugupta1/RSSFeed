@@ -10,6 +10,11 @@ def heartcheck():
     return {"status": "healthy"}
 
 
+@app.post("/api/crawl")
+def crawl(url: str):
+   
+    return {"status": "crawling", "url": url}
+
 if __name__ == "__main__":
     # Aspire automatically passes configured ports, but we fallback to 8000
     port = int(os.getenv("PORT", 8000)) 
