@@ -6,11 +6,8 @@ import uvicorn
 from features.crawl.crawl import Crawl
 from services.llm import LLMService
 
-# CHAT_URI = os.getenv("CHAT_URI") 
-# CHAT_MODEL = os.getenv("CHAT_MODEL")
-
-CHAT_URI = "http://localhost:36989/v1/chat/completions"
-CHAT_MODEL = "llama3.2"
+CHAT_URI = os.getenv("CHAT_URI") 
+CHAT_MODEL = os.getenv("CHAT_MODEL")
 
 app = FastAPI()
 

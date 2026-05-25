@@ -4,6 +4,8 @@ import json
 
 class LLMService(ABC):
     def __init__(self, url:str, model:str, config:dict):
+        if url and not url.endswith("/v1/chat/completions") and not url.endswith("/api/chat"):
+            url = url.rstrip("/") + "/v1/chat/completions"
         self.url = url
         self.model = model
         self.config = config
