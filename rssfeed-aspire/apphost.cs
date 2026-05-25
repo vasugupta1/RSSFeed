@@ -18,9 +18,13 @@ var db = postgres.AddDatabase("rssfeeddatabase");
 //#####################AI#####################################
 var ollama = builder.AddOllama("ollama")
                     .WithDataVolume()
+                    .WithEnvironment("OLLAMA_KEEP_ALIVE", "-1")
+                    //  .WithEnvironment("HSA_OVERRIDE_GFX_VERSION", "11.0.3")
+                    .WithEnvironment("HIP_VISIBLE_DEVICES", "")
+                    .WithEnvironment("RUST_LOG", "debug")
                     .WithOpenWebUI();
         
-var chatmodel = ollama.AddModel("chat", "llama3.2");
+var chatmodel = ollama.AddModel("chat", "llama3.1:8b");
 
 
 var ai = builder.AddUvicornApp(name: "rssfeedai", appDirectory: "../ai", app: "app:app")

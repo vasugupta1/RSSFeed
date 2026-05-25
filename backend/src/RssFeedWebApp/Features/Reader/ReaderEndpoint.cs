@@ -4,7 +4,6 @@ using Microsoft.Extensions.Options;
 using RssFeedWebApp.Features.Reader.Models;
 using RssFeedWebApp.Models.Configuration;
 
-
 namespace RssFeedWebApp.Features.Reader;
 
 public static class ReaderEndpoint
