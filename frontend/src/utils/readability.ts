@@ -14,43 +14,98 @@ export interface ParsedArticle {
  * Step 1: HTML Fetching
  * Downloads the raw HTML directly from the target URL without any CORS proxies.
  */
-export async function fetchHtml(url: string): Promise<string> {
+/**
+ * Converts basic markdown formatting to clean HTML.
+ */
+function markdownToHtml(md: string): string {
+  if (!md) return '';
+
+  // Escape HTML characters to prevent XSS
+  let html = md
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+
+  // Headings
+  html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
+  html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
+  html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
+
+  // Bold (**text** or __text__)
+  html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/__([^_]+)__/g, '<strong>$1</strong>');
+
+  // Italic (*text* or _text_)
+  html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+  html = html.replace(/_([^_]+)_/g, '<em>$1</em>');
+
+  // Inline code (`code`)
+  html = html.replace(/`([^`\n]+)`/g, '<code>$1</code>');
+
+  // Links ([text](url))
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+
+  // Unordered list items (- item or * item)
+  html = html.replace(/^\s*[-*]\s+(.*$)/gim, '<li>$1</li>');
+
+  // Paragraphs & block spacing: split by double newlines
+  const blocks = html.split(/\n\n+/);
+  html = blocks.map(block => {
+    block = block.trim();
+    if (!block) return '';
+    if (block.startsWith('<h') || block.startsWith('<li') || block.startsWith('<pre')) {
+      return block;
+    }
+    return `<p>${block.replace(/\n/g, '<br>')}</p>`;
+  }).join('\n');
+
+  return html;
+}
+
+/**
+ * Step 1: Content Fetching via Reader API
+ * Posts the target URL to the backend reader API proxy and returns the parsed content string.
+ */
+export async function fetchArticleContent(url: string): Promise<string> {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+  const timeoutId = setTimeout(() => controller.abort(), 60000); // Extended to 60s timeout for crawling and LLM processing
   
   try {
-    console.log(`[Readability] Fetching HTML from backend reader proxy for link: ${url}`);
+    console.log(`[Readability] Requesting article content from backend reader proxy for link: ${url}`);
     
-    const proxyUrl = `/api/reader?url=${encodeURIComponent(url)}`;
-
-    console.log(`[Readability] Constructed proxy URL: ${proxyUrl}`);
-
-    const response = await fetch(proxyUrl, {
+    const response = await fetch('/api/reader', {
+      method: 'POST',
       signal: controller.signal,
       headers: {
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-      }
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify({ url })
     });
     
     clearTimeout(timeoutId);
     
     if (!response.ok) {
-      throw new Error(`Reader proxy returned status ${response.status} ${response.statusText}`);
+      throw new Error(`Reader API returned status ${response.status} ${response.statusText}`);
     }
     
-    const htmlText = await response.text();
-    console.log(`[Readability] Received HTML content from proxy (length: ${htmlText.length} characters)`);
-    console.log(`[Readability] HTML content:\n${htmlText}`);
+    const data = await response.json();
+    const rawResult = data.result || data.Result || '';
+    
+    console.log(`[Readability] Received content from reader API (length: ${rawResult.length} characters)`);
 
-    if (htmlText.trim().length < 200) {
-      throw new Error('Received empty or incomplete webpage content from reader proxy.');
+    if (rawResult.trim().length === 0) {
+      throw new Error('Received empty response from the reader service.');
     }
     
-    console.log(`[Readability] Successfully fetched HTML content via proxy!`);
-    return htmlText;
+    // Convert the returned Markdown into clean HTML tags for readability parser processing
+    const htmlOutput = markdownToHtml(rawResult);
+    
+    console.log(`[Readability] Successfully parsed Markdown to HTML!`);
+    return htmlOutput;
   } catch (error) {
     clearTimeout(timeoutId);
-    console.error(`[Readability] Proxy fetch failed:`, error);
+    console.error(`[Readability] Reader API fetch failed:`, error);
     throw error;
   }
 }

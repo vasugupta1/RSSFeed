@@ -12,8 +12,22 @@ namespace RssFeedWebApp
         {
             var builder = WebApplication.CreateBuilder(args);
             builder.Services.AddSingleton(builder.Configuration);
-            builder.Services.Configure<AppSettings>(
-                builder.Configuration.GetSection(nameof(AppSettings)));
+            builder.Services.Configure<AppSettings>(options =>
+            {
+                builder.Configuration.GetSection(nameof(AppSettings)).Bind(options);
+                
+                var aspireUrl = builder.Configuration["services:rssfeedai:https:0"] 
+                             ?? builder.Configuration["services:rssfeedai:http:0"];
+
+                if (!string.IsNullOrEmpty(aspireUrl))
+                {
+                    if (options.AiCrawlerService is null)
+                    {
+                        options.AiCrawlerService = new AiCrawlerService();
+                    }
+                    options.AiCrawlerService.BaseUrl = aspireUrl;
+                }
+            });
             builder.Services.AddTransient<IParser, Parser>();
             builder.Services.AddTransient<IFeedDeserialiserFactory, FeedDeserialiserFactory>();
             builder.Services.AddHttpClient();

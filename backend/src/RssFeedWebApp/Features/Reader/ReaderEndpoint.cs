@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using RssFeedWebApp.Features.Reader.Models;
@@ -8,6 +9,10 @@ namespace RssFeedWebApp.Features.Reader;
 
 public static class ReaderEndpoint
 {
+    private static readonly JsonSerializerOptions SerializerOptions = new System.Text.Json.JsonSerializerOptions
+    {
+        PropertyNameCaseInsensitive = true
+    };
     public static IEndpointRouteBuilder MapReaderEndpoint(this IEndpointRouteBuilder endpoints)
     {
         endpoints.MapPost("/api/reader", HandleReaderAsync);
@@ -36,10 +41,14 @@ public static class ReaderEndpoint
                 title: "Failed to crawl url");
         }
         var content = await response.Content.ReadAsStringAsync();
-        var crawlResponse = System.Text.Json.JsonSerializer.Deserialize<CrawlResponse>(content);
+        var crawlResponse = System.Text.Json.JsonSerializer.Deserialize<CrawlResponse>(content, SerializerOptions);
         return Results.Ok(crawlResponse);
     }
 
     private static string ConstructURL(string baseurl, string endpointUrl, string pageUrl)
-        =>  $"{baseurl}{endpointUrl}?url={pageUrl}";
+    {
+        var cleanBase = baseurl.EndsWith('/') ? baseurl : baseurl + "/";
+        var cleanEndpoint = endpointUrl.StartsWith('/') ? endpointUrl.Substring(1) : endpointUrl;
+        return $"{cleanBase}{cleanEndpoint}?url={pageUrl}";
+    }
 }

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { FeedItem } from '../mockData';
-import { fetchHtml, parseHtml, extractAndFormat } from '../utils/readability';
+import { fetchArticleContent } from '../utils/readability';
 
 interface FlatArticle extends FeedItem {
   feedTitle: string;
@@ -47,21 +47,10 @@ export default function ReaderView({
 
     const targetUrl = activeArticle.link;
 
-    fetchHtml(targetUrl)
+    fetchArticleContent(targetUrl)
       .then(htmlText => {
-        console.log(htmlText)
         if (!isMounted) return;
-        
-        // Step 2: DOM Parsing
-        const doc = parseHtml(htmlText);
-        
-        // Step 3: Scoring & Cleaning + Step 4: Output Rendering
-        const parsed = extractAndFormat(doc, activeArticle.title);
-        
-        setFullContent(parsed.content);
-        if (parsed.byline) {
-          setArticleByline(parsed.byline);
-        }
+        setFullContent(htmlText);
       })
       .catch(err => {
         if (!isMounted) return;
