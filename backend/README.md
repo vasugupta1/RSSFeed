@@ -1,5 +1,5 @@
 ## Backend
 
-This project contains a webapi which will serve the rssfeed level elements, majority of the logic is in the parsing of the rss feed which can be found in the RssFeedParser project. Currently it will support XML but later down the line it can support JSON and ATOM
+This project is BFF, used for the front-end to call web api endpoints to serve, BFF will be responsible for setting up calls to python project to scrape websites for data, storing it in database making it avaiable for the BFF to fetch and return back to the front-end
 
 

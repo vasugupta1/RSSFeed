@@ -6,6 +6,7 @@ interface AddFeedModalProps {
   modalError: string | null;
   handleAddFeed: (e: React.FormEvent) => void;
   handleLoadSample: () => void;
+  isIngesting?: boolean;
 }
 
 export default function AddFeedModal({
@@ -15,16 +16,22 @@ export default function AddFeedModal({
   setCustomXmlInput,
   modalError,
   handleAddFeed,
-  handleLoadSample
+  handleLoadSample,
+  isIngesting = false
 }: AddFeedModalProps) {
   if (!isModalOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center z-50 animate-fade-in" onClick={() => setIsModalOpen(false)}>
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center z-50 animate-fade-in" onClick={() => !isIngesting && setIsModalOpen(false)}>
       <div className="bg-card border border-border-custom rounded-2xl w-full max-w-lg shadow-lg-custom flex flex-col overflow-hidden animate-slide-up" onClick={(e) => e.stopPropagation()}>
         <div className="px-6 py-5 border-b border-border-custom flex items-center justify-between">
           <h2 className="text-base font-semibold text-primary">Add Custom RSS/Atom Feed</h2>
-          <button className="bg-transparent border-0 text-muted cursor-pointer text-xl p-1 flex items-center justify-center rounded-full transition-all hover:text-primary hover:bg-card-hover" onClick={() => setIsModalOpen(false)} title="Close">
+          <button 
+            className="bg-transparent border-0 text-muted cursor-pointer text-xl p-1 flex items-center justify-center rounded-full transition-all hover:text-primary hover:bg-card-hover disabled:opacity-50 disabled:cursor-not-allowed" 
+            onClick={() => setIsModalOpen(false)} 
+            disabled={isIngesting}
+            title="Close"
+          >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M18 6 6 18" />
               <path d="m6 6 12 12" />
@@ -35,7 +42,7 @@ export default function AddFeedModal({
         <form onSubmit={handleAddFeed}>
           <div className="p-6 flex flex-col gap-4">
             {modalError && (
-              <div className="px-3.5 py-2.5 bg-red-500/10 text-red-500 border border-red-500/20 rounded-lg text-sm">
+              <div className="px-3.5 py-2.5 bg-red-500/10 text-red-500 border border-red-500/20 rounded-lg text-sm animate-shake">
                 {modalError}
               </div>
             )}
@@ -44,14 +51,20 @@ export default function AddFeedModal({
               <label className="text-xs font-semibold text-secondary">Paste XML Feed Content</label>
               <textarea
                 placeholder="<?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?>..."
-                className="w-full h-44 p-3 bg-app border border-border-custom rounded-xl text-primary font-mono text-xs resize-y leading-relaxed transition-colors focus:border-brand focus:outline-none"
+                className="w-full h-44 p-3 bg-app border border-border-custom rounded-xl text-primary font-mono text-xs resize-y leading-relaxed transition-colors focus:border-brand focus:outline-none disabled:opacity-75 disabled:cursor-not-allowed"
                 value={customXmlInput}
                 onChange={(e) => setCustomXmlInput(e.target.value)}
+                disabled={isIngesting}
                 required
               />
               <div className="text-[11px] text-muted flex justify-between">
                 <span>Provide valid RSS 2.0 or Atom XML syntax.</span>
-                <button type="button" className="bg-transparent border-0 text-brand cursor-pointer font-semibold p-0 hover:underline" onClick={handleLoadSample}>
+                <button 
+                  type="button" 
+                  className="bg-transparent border-0 text-brand cursor-pointer font-semibold p-0 hover:underline disabled:opacity-50 disabled:cursor-not-allowed" 
+                  onClick={handleLoadSample}
+                  disabled={isIngesting}
+                >
                   Load Sample XML
                 </button>
               </div>
@@ -59,11 +72,30 @@ export default function AddFeedModal({
           </div>
 
           <div className="px-6 py-4 border-t border-border-custom flex items-center justify-end gap-3 bg-sidebar">
-            <button type="button" className="px-4 py-2 bg-transparent border border-border-custom rounded-xl text-secondary text-sm cursor-pointer transition-all hover:bg-card-hover hover:text-primary" onClick={() => setIsModalOpen(false)}>
+            <button 
+              type="button" 
+              className="px-4 py-2 bg-transparent border border-border-custom rounded-xl text-secondary text-sm cursor-pointer transition-all hover:bg-card-hover hover:text-primary disabled:opacity-50 disabled:cursor-not-allowed" 
+              onClick={() => setIsModalOpen(false)}
+              disabled={isIngesting}
+            >
               Cancel
             </button>
-            <button type="submit" className="px-4 py-2 bg-brand border-0 rounded-xl text-white text-sm font-medium cursor-pointer transition-all hover:bg-brand-hover">
-              Parse & Subscribe
+            <button 
+              type="submit" 
+              className="px-4 py-2 bg-brand border-0 rounded-xl text-white text-sm font-medium cursor-pointer transition-all hover:bg-brand-hover disabled:opacity-75 disabled:cursor-not-allowed flex items-center gap-2"
+              disabled={isIngesting}
+            >
+              {isIngesting ? (
+                <>
+                  <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  <span>Ingesting Feed...</span>
+                </>
+              ) : (
+                'Parse & Subscribe'
+              )}
             </button>
           </div>
         </form>
