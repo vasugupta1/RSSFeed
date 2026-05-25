@@ -31,6 +31,7 @@ var chatmodel = ollama.AddModel("chat", "llama3.2");
 var ai = builder.AddPythonApp(name: "rssfeedai", appDirectory: "../ai", scriptPath: "app.py")
                     .WithReference(db)
                     .WithReference(chatmodel)
+                    .WithReference(ollama)
                     .WaitFor(db)
                     .WaitFor(chatmodel);
 
