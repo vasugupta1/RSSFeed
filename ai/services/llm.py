@@ -34,6 +34,7 @@ class LLMService(ABC):
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
             ],
+            "stream": False,
             **generation_params
         }
         return payload
