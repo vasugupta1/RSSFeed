@@ -1,7 +1,8 @@
-#:package Aspire.Hosting.Azure@13.3.5
+﻿#:package Aspire.Hosting.Azure@13.3.5
 #:package Aspire.Hosting.JavaScript@13.3.5
 #:package Aspire.Hosting.PostgreSQL@13.3.5
 #:package Aspire.Hosting.Python@13.3.5
+#:package CommunityToolkit.Aspire.Hosting.Golang@13.3.0
 #:package CommunityToolkit.Aspire.Hosting.Ollama@13.3.0
 #:sdk Aspire.AppHost.Sdk@13.3.5
 #:project ../backend/src/RssFeedWebApp/RssFeedWebApp.csproj
@@ -37,6 +38,12 @@ var ai = builder.AddUvicornApp(name: "rssfeedai", appDirectory: "../ai", app: "a
 //#####################BFF#####################################
 var bff = builder.AddProject<Projects.RssFeedWebApp>("rssfeedwebapp")
                     .WaitForStart(postgres)
+                    .WithReference(db)
+                    .WithReference(ai);
+
+var gobff = builder.AddGolangApp("rssfeedbff", "../backend")
+                    .WithHttpEndpoint(env: "PORT")
+                    .WithHttpHealthCheck("/health")
                     .WithReference(db)
                     .WithReference(ai);
 
