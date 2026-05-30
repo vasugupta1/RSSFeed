@@ -29,7 +29,7 @@ var ollama = builder.AddOllama("ollama")
                     .WithEnvironment("OLLAMA_CONTEXT_LENGTH", "16384")
                     .WithContainerRuntimeArgs("--device", "/dev/kfd", "--device", "/dev/dri");
         
-var chatmodel = ollama.AddModel("chat", "llama3.1:8b");
+var chatmodel = ollama.AddModel("chat", "llama3.2:latest");
 
 
 var ai = builder.AddUvicornApp(name: "rssfeedai", appDirectory: "../ai", app: "app:app")
