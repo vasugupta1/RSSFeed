@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { FeedItem } from '../mockData';
 import { fetchArticleContent } from '../utils/readability';
+import BulletList from '../components/BulletList';
 
 interface FlatArticle extends FeedItem {
   feedTitle: string;
@@ -223,10 +224,18 @@ export default function ReaderView({
                 </div>
 
                 {/* Clean, heuristic-scored formatted body text */}
-                <div 
-                  className="reader-body-custom" 
-                  dangerouslySetInnerHTML={{ __html: fullContent || '' }}
-                />
+                <div className="reader-body-custom">
+                  {fullContent && fullContent.trim().startsWith('<ul') ? (
+                    (() => {
+                      const parser = new DOMParser();
+                      const doc = parser.parseFromString(fullContent, 'text/html');
+                      const items = Array.from(doc.querySelectorAll('li')).map(li => li.textContent?.trim() || '');
+                      return <BulletList items={items} />;
+                    })()
+                  ) : (
+                    <div dangerouslySetInnerHTML={{ __html: fullContent || '' }} />
+                  )}
+                </div>
 
                 <div className="mt-16 pt-8 border-t border-border-custom flex justify-start">
                   <a 
