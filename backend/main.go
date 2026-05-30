@@ -5,16 +5,19 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/gin-gonic/gin"
 	"github.com/vasugupta1/RSSFeed/backend/features/healthcheck"
 )
 
 func main() {
 	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
-	}
-	http.HandleFunc("/api/healthcheck", healthcheck.HealthCheckHandler)
+	r := gin.Default()
+	r.GET("/", func(ctx *gin.Context) {
+		ctx.JSON(http.StatusOK, gin.H{
+			"status": "ok",
+		})
+	})
+	r.GET("/api/healthcheck", healthcheck.HealthCheckHandler)
 
-	fmt.Printf("Server listening on port %s\n", port)
-	http.ListenAndServe(":"+port, nil)
+	r.Run(fmt.Sprintf(":%s", port))
 }

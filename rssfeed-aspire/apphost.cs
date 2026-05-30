@@ -5,7 +5,6 @@
 #:package CommunityToolkit.Aspire.Hosting.Golang@13.3.0
 #:package CommunityToolkit.Aspire.Hosting.Ollama@13.3.0
 #:sdk Aspire.AppHost.Sdk@13.3.5
-#:project ../backend/src/RssFeedWebApp/RssFeedWebApp.csproj
 
 var builder = DistributedApplication.CreateBuilder(args);
 
@@ -13,7 +12,8 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 var postgres = builder.AddPostgres("rssfeedstorage")
                       .WithPgAdmin()
-                      .WithDataVolume(); 
+                      .WithDataVolume()
+                      .WithHostPort(port: 5050); 
 var db = postgres.AddDatabase("rssfeeddatabase");
 
 //#####################AI#####################################
@@ -37,23 +37,21 @@ var ai = builder.AddUvicornApp(name: "rssfeedai", appDirectory: "../ai", app: "a
                     .WithReference(chatmodel)
                     .WithReference(ollama)
                     .WaitFor(db)
-                    .WaitFor(chatmodel);
+                    .WaitFor(chatmodel)
+                    .WithHttpEndpoint(port: 8001);
 
 //#####################BFF#####################################
-var bff = builder.AddProject<Projects.RssFeedWebApp>("rssfeedwebapp")
-                    .WaitForStart(postgres)
-                    .WithReference(db)
-                    .WithReference(ai);
 
 var gobff = builder.AddGolangApp("rssfeedbff", "../backend")
-                    .WithHttpEndpoint(env: "PORT")
+                    .WithHttpEndpoint(env: "PORT", port: 8002)
                     .WithHttpHealthCheck("/api/healthcheck")
                     .WithReference(db)
                     .WithReference(ai);
 
 //#####################Frontend################################
 var frontendservice = builder.AddViteApp(name: "rssfeedfrontend", appDirectory: "../frontend")
-                             .WithReference(bff)
-                             .WaitFor(bff);
+                             .WithReference(gobff)
+                             .WaitFor(gobff)
+                             .WithHttpEndpoint(port: 8003);
 
 builder.Build().Run();

@@ -3,18 +3,20 @@ package healthcheck
 import (
 	"encoding/json"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
 )
 
-func HealthCheckHandler(w http.ResponseWriter, r *http.Request) {
+func HealthCheckHandler(c *gin.Context) {
 	response := HealthCheckResponse{
 		Status: "healthy",
 	}
-	w.Header().Set("Content-Type", "application/json")
+	c.Header("Content-Type", "application/json")
 	jsonBytes, err := json.Marshal(response)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	w.WriteHeader(http.StatusOK)
-	w.Write(jsonBytes)
+	c.Status(http.StatusOK)
+	c.Writer.Write(jsonBytes)
 }
