@@ -17,26 +17,16 @@ var postgres = builder.AddPostgres("rssfeedstorage")
 var db = postgres.AddDatabase("rssfeeddatabase");
 
 //#####################AI#####################################
-// var ollama = builder.AddOllama("ollama")
-//                     .WithDataVolume()
-//                     .WithEnvironment("OLLAMA_KEEP_ALIVE", "-1")
-//                     .WithEnvironment("HSA_OVERRIDE_GFX_VERSION", "11.0.0")
-//                     .WithEnvironment("HIP_VISIBLE_DEVICES", "")
-//                     .WithEnvironment("RUST_LOG", "debug")
-//                     .WithOpenWebUI()
-//                     .WithGPUSupport(OllamaGpuVendor.AMD)
-//                     .WithImageTag("rocm");
-
 var ollama = builder.AddOllama("ollama")
                     .WithDataVolume()
                     .WithEnvironment("OLLAMA_KEEP_ALIVE", "-1")
                     .WithEnvironment("HSA_OVERRIDE_GFX_VERSION", "11.0.0")
-                    .WithEnvironment("HIP_VISIBLE_DEVICES", "0") // Change from empty string to "0" to explicitly map device 0
+                    .WithEnvironment("HIP_VISIBLE_DEVICES", "0")
                     .WithEnvironment("RUST_LOG", "debug")
                     .WithOpenWebUI()
                     .WithGPUSupport(OllamaGpuVendor.AMD)
                     .WithImageTag("rocm")
-                    // 👇 This explicitly maps the missing display/render nodes required by ROCm
+                    .WithEnvironment("OLLAMA_CONTEXT_LENGTH", "16384")
                     .WithContainerRuntimeArgs("--device", "/dev/kfd", "--device", "/dev/dri");
         
 var chatmodel = ollama.AddModel("chat", "llama3.1:8b");
