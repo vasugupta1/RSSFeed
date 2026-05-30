@@ -42,7 +42,7 @@ var ai = builder.AddUvicornApp(name: "rssfeedai", appDirectory: "../ai", app: "a
 
 //#####################BFF#####################################
 
-var gobff = builder.AddGolangApp("rssfeedbff", "../backend")
+var rssfeedwebapp = builder.AddGolangApp("rssfeedwebapp", "../backend")
                     .WithHttpEndpoint(env: "PORT", port: 8002)
                     .WithHttpHealthCheck("/api/healthcheck")
                     .WithReference(db)
@@ -50,8 +50,8 @@ var gobff = builder.AddGolangApp("rssfeedbff", "../backend")
 
 //#####################Frontend################################
 var frontendservice = builder.AddViteApp(name: "rssfeedfrontend", appDirectory: "../frontend")
-                             .WithReference(gobff)
-                             .WaitFor(gobff)
+                             .WithReference(rssfeedwebapp)
+                             .WaitFor(rssfeedwebapp)
                              .WithHttpEndpoint(port: 8003);
 
 builder.Build().Run();

@@ -90,6 +90,7 @@ export async function fetchArticleContent(url: string): Promise<string> {
     }
     
     const data = await response.json();
+    console.log(`[Readability] Received response from reader API:`, data);
     const rawResult = data.result || data.Result || '';
     
     console.log(`[Readability] Received content from reader API (length: ${rawResult.length} characters)`);

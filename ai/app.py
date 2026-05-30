@@ -39,7 +39,7 @@ async def crawl(url: str):
     result = await crawler.run()
     llm_service = LLMService(url=CHAT_URI, model=CHAT_MODEL, config={})
     llm_response = llm_service.call(f"Summarize the crawl result: {result}")
-    return {"url": url, "result": llm_response}
+    return {"Url": url, "Response": llm_response}
 
 if __name__ == "__main__":
     # Aspire automatically passes configured ports, but we fallback to 8000

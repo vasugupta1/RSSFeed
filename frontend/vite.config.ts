@@ -5,7 +5,7 @@ import tailwindcss from '@tailwindcss/vite'
 // Read backend URL from .NET Aspire environment variables or fallback to dev port
 const apiTarget = process.env.services__rssfeedwebapp__http__0 || 
                   process.env.services__rssfeedwebapp__https__0 || 
-                  'http://localhost:5079';
+                  'http://localhost:8002';
 
 console.log('Vite dev-server API proxy target:', apiTarget);
 

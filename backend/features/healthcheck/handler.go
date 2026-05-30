@@ -7,6 +7,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+type HealthCheckResponse struct {
+	Status string `json:"status"`
+}
+
 func HealthCheckHandler(c *gin.Context) {
 	response := HealthCheckResponse{
 		Status: "healthy",
