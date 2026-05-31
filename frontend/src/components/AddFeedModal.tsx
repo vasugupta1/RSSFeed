@@ -1,22 +1,20 @@
 interface AddFeedModalProps {
   isModalOpen: boolean;
   setIsModalOpen: (open: boolean) => void;
-  customXmlInput: string;
-  setCustomXmlInput: (input: string) => void;
+  feedUrl: string;
+  setFeedUrl: (url: string) => void;
   modalError: string | null;
   handleAddFeed: (e: React.FormEvent) => void;
-  handleLoadSample: () => void;
   isIngesting?: boolean;
 }
 
 export default function AddFeedModal({
   isModalOpen,
   setIsModalOpen,
-  customXmlInput,
-  setCustomXmlInput,
+  feedUrl,
+  setFeedUrl,
   modalError,
   handleAddFeed,
-  handleLoadSample,
   isIngesting = false
 }: AddFeedModalProps) {
   if (!isModalOpen) return null;
@@ -48,26 +46,17 @@ export default function AddFeedModal({
             )}
             
             <div className="flex flex-col gap-2">
-              <label className="text-xs font-semibold text-secondary">Paste XML Feed Content</label>
-              <textarea
-                placeholder="<?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?>..."
-                className="w-full h-44 p-3 bg-app border border-border-custom rounded-xl text-primary font-mono text-xs resize-y leading-relaxed transition-colors focus:border-brand focus:outline-none disabled:opacity-75 disabled:cursor-not-allowed"
-                value={customXmlInput}
-                onChange={(e) => setCustomXmlInput(e.target.value)}
+              <label className="text-xs font-semibold text-secondary">Enter RSS Feed URL</label>
+              <input
+                type="url"
+                placeholder="https://example.com/feed.xml"
+                className="w-full p-3 bg-app border border-border-custom rounded-xl text-primary focus:border-brand focus:outline-none disabled:opacity-75 disabled:cursor-not-allowed"
+                value={feedUrl}
+                onChange={(e) => setFeedUrl(e.target.value)}
                 disabled={isIngesting}
                 required
               />
-              <div className="text-[11px] text-muted flex justify-between">
-                <span>Provide valid RSS 2.0 or Atom XML syntax.</span>
-                <button 
-                  type="button" 
-                  className="bg-transparent border-0 text-brand cursor-pointer font-semibold p-0 hover:underline disabled:opacity-50 disabled:cursor-not-allowed" 
-                  onClick={handleLoadSample}
-                  disabled={isIngesting}
-                >
-                  Load Sample XML
-                </button>
-              </div>
+              {/* Sample load button removed */}
             </div>
           </div>
 

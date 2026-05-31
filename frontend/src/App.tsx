@@ -18,36 +18,38 @@ function App() {
   
   // Custom XML Modal State
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
-  const [customXmlInput, setCustomXmlInput] = useState<string>('');
+  const [feedUrl, setFeedUrl] = useState<string>('');
   const [modalError, setModalError] = useState<string | null>(null);
 
   // Add custom feed
-  const handleAddFeed = (e: React.FormEvent) => {
+  const handleAddFeed = async (e: React.FormEvent) => {
     e.preventDefault();
     setModalError(null);
 
-    if (!customXmlInput.trim()) {
-      setModalError('Feed XML content cannot be empty.');
+    if (!feedUrl.trim()) {
+      setModalError('Feed URL cannot be empty.');
       return;
     }
 
     try {
-      const newFeed = parseXml(customXmlInput);
+      const response = await fetch(feedUrl);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch feed: ${response.status} ${response.statusText}`);
+      }
+      const xmlText = await response.text();
+      const newFeed = parseXml(xmlText);
       setFeeds([...feeds, newFeed]);
       setActiveFeedId(newFeed.id);
       setIsModalOpen(false);
-      setCustomXmlInput('');
+      setFeedUrl('');
     } catch (err) {
-      const errMsg = err instanceof Error ? err.message : 'Failed to parse XML.';
+      const errMsg = err instanceof Error ? err.message : 'Failed to fetch or parse feed.';
       setModalError(errMsg);
     }
   };
 
   // Load sample feed XML in modal for testing
-  const handleLoadSample = () => {
-    setCustomXmlInput(SAMPLE_XML_FEED);
-    setModalError(null);
-  };
+  // Removed sample loading functionality as feed is now added via URL
 
   // Toggle article starred state
   const handleToggleStar = (articleId: string, e?: React.MouseEvent) => {
@@ -220,11 +222,10 @@ function App() {
       <AddFeedModal
         isModalOpen={isModalOpen}
         setIsModalOpen={setIsModalOpen}
-        customXmlInput={customXmlInput}
-        setCustomXmlInput={setCustomXmlInput}
+        feedUrl={feedUrl}
+        setFeedUrl={setFeedUrl}
         modalError={modalError}
         handleAddFeed={handleAddFeed}
-        handleLoadSample={handleLoadSample}
       />
     </div>
   );

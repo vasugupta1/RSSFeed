@@ -42,6 +42,5 @@ async def crawl(url: str):
     return {"Url": url, "Response": llm_response}
 
 if __name__ == "__main__":
-    # Aspire automatically passes configured ports, but we fallback to 8000
     port = int(os.getenv("PORT", 8000)) 
     uvicorn.run("app:app", host="0.0.0.0", port=port, reload=True)

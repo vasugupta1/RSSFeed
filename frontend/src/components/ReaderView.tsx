@@ -128,22 +128,7 @@ export default function ReaderView({
               </svg>
             </button>
 
-            {/* Segmented View Mode Toggle */}
-            <div className="flex items-center gap-1 bg-app p-1 rounded-xl border border-border-custom mr-4">
-              <button 
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-all ${viewMode === 'full' ? 'bg-brand text-white shadow-sm' : 'text-secondary hover:text-primary'}`}
-                onClick={() => setViewMode('full')}
-                disabled={isLoading}
-              >
-                Full Article
-              </button>
-              <button 
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-all ${viewMode === 'summary' ? 'bg-brand text-white shadow-sm' : 'text-secondary hover:text-primary'}`}
-                onClick={() => setViewMode('summary')}
-              >
-                RSS Summary
-              </button>
-            </div>
+            {/* View mode toggle removed */}
 
             {/* Action Toggles (Star / Read status) */}
             <div className="flex items-center gap-3 ml-auto">
