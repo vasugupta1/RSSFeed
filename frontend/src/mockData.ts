@@ -8,6 +8,7 @@ export interface FeedItem {
   starred: boolean;
   author?: string;
   content?: string;
+  imageUrl?: string;
 }
 
 export interface Feed {
@@ -82,107 +83,31 @@ export const INITIAL_FEEDS: Feed[] = [
         content: "<p>The prime minister said it was \"right\" that the sentences were being urgently reviewed.</p>"
       }
     ]
-  },
+  }
+,
   {
-    id: 'skynews',
-    title: 'Sky News - Home',
-    link: 'https://news.sky.com/home',
-    description: 'Sky news delivers breaking news, headlines and top stories from business, politics, entertainment and more in the UK and worldwide.',
+    id: 'guardian',
+    title: 'World news | The Guardian',
+    link: 'https://www.theguardian.com/world',
+    description: "Latest World news news, comment and analysis from the Guardian, the world's leading liberal voice",
     items: [
       {
-        id: 'sky-1',
-        title: "Ex-Spurs chairman Levy joins basketball bid | Mark Kleinman blog",
-        link: 'https://news.sky.com/story/mark-kleinman-blog-see-the-latest-stories-from-sky-news-city-editor-13505671',
+        id: 'guardian-1',
+        title: 'Death of Congolese man renews scrutiny of race relations in Ireland',
+        link: 'https://www.theguardian.com/world/2026/may/31/yves-sakila-death-congolese-man-ireland-race-relations',
         description: '',
-        pubDate: 'Tue, 10 Feb 2026 11:47:00 +0000',
+        pubDate: 'Sun, 31 May 2026 13:59:34 GMT',
         read: false,
         starred: false,
         author: undefined,
         content: ''
       },
       {
-        id: 'sky-2',
-        title: 'Police mount investigation after rare miniature horses stolen',
-        link: 'https://news.sky.com/story/police-mount-investigation-after-rare-miniature-horses-stolen-13549277',
-        description: 'Police have launched an appeal after two rare miniature horses were stolen from a farm in Kent.',
-        pubDate: 'Sat, 30 May 2026 12:56:00 +0100',
-        read: false,
-        starred: false,
-        author: undefined,
-        content: ''
-      },
-      {
-        id: 'sky-3',
-        title: 'Almost 100 homes evacuated in former mining village after ground movement detected',
-        link: 'https://news.sky.com/story/almost-100-homes-evacuated-in-former-mining-village-after-ground-movement-detected-13549253',
-        description: 'Almost 100 homes have been evacuated following reports of ground movement in a former mining village in Clackmannanshire.',
-        pubDate: 'Sat, 30 May 2026 15:09:00 +0100',
-        read: false,
-        starred: false,
-        author: undefined,
-        content: ''
-      },
-      {
-        id: 'sky-4',
-        title: 'US, UK and Australia to develop underwater drones through defence pact',
-        link: 'https://news.sky.com/story/aukus-nations-to-develop-underwater-drones-through-defence-pact-13549241',
-        description: 'Unmanned undersea vehicles will be developed under the AUKUS defence pact, US secretary of defence Pete Hegseth said.',
-        pubDate: 'Sat, 30 May 2026 15:00:00 +0100',
-        read: false,
-        starred: false,
-        author: undefined,
-        content: ''
-      },
-      {
-        id: 'sky-5',
-        title: "NHS trial of blood test offers 'genuine hope' for people with some cancers",
-        link: 'https://news.sky.com/story/nhs-trial-of-blood-test-offers-genuine-hope-for-people-with-some-cancers-13549242',
-        description: 'A blood test designed to detect multiple cancers could offer "genuine hope" for people with some types of the disease, experts say.',
-        pubDate: 'Sat, 30 May 2026 11:05:00 +0100',
-        read: false,
-        starred: false,
-        author: undefined,
-        content: ''
-      },
-      {
-        id: 'sky-6',
-        title: 'Teenager charged with murder after 15-year-old boy fatally stabbed in London',
-        link: 'https://news.sky.com/story/teenager-charged-with-murder-after-15-year-old-boy-fatally-stabbed-in-london-13549211',
-        description: 'A 16-year-old has been charged with murder after a teenage boy was fatally stabbed in east London.',
-        pubDate: 'Sat, 30 May 2026 08:18:00 +0100',
-        read: false,
-        starred: false,
-        author: undefined,
-        content: ''
-      },
-      {
-        id: 'sky-7',
-        title: 'Ex-England star Raheem Sterling arrested on suspicion of drug driving',
-        link: 'https://news.sky.com/story/ex-england-star-raheem-sterling-arrested-on-suspicion-of-drug-driving-sky-news-understands-13549226',
-        description: 'Former England footballer Raheem Sterling has been arrested on suspicion of drug driving, Sky News understands.',
-        pubDate: 'Sat, 30 May 2026 10:08:00 +0100',
-        read: false,
-        starred: false,
-        author: undefined,
-        content: ''
-      },
-      {
-        id: 'sky-8',
-        title: 'Temperatures to fall in UK as heatwave comes to an end',
-        link: 'https://news.sky.com/story/uk-weather-temperatures-to-fall-as-record-breaking-heatwave-comes-to-an-end-13549197',
-        description: 'Temperatures will drop across much of the UK over the weekend, as a record-breaking heatwave gives way to cloudy skies and rain, the Met Office has said.',
-        pubDate: 'Sat, 30 May 2026 05:59:00 +0100',
-        read: false,
-        starred: false,
-        author: undefined,
-        content: ''
-      },
-      {
-        id: 'sky-9',
-        title: 'Four people trapped in flooded cave in Laos pulled to safety',
-        link: 'https://news.sky.com/story/four-people-trapped-in-flooded-cave-in-laos-pulled-to-safety-13549218',
-        description: 'Four people trapped for 10 days in a flooded cave in Laos have been safely evacuated by rescuers.',
-        pubDate: 'Sat, 30 May 2026 09:32:00 +0100',
+        id: 'guardian-2',
+        title: 'Bound by blood: new film highlights Jamaica’s outlawed obeah belief system',
+        link: 'https://www.theguardian.com/world/2026/may/30/stew-pews-film-obeah-jamaica-magic-tradition',
+        description: '',
+        pubDate: 'Sat, 30 May 2026 11:00:18 GMT',
         read: false,
         starred: false,
         author: undefined,
