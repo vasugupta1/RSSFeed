@@ -29,7 +29,7 @@ func (app *Application) mount(cs crawler.Service) http.Handler {
 		w.Write([]byte("OK"))
 	})
 
-	r.Post("/api/reader", crawler.NewHandler(cs).CrawlerHandler)
+	r.Post("/api/crawler", crawler.NewHandler(cs).CrawlerHandler)
 
 	return r
 }

@@ -19,7 +19,7 @@ export async function fetchArticleContent(url: string): Promise<string> {
 
   try {
     console.log(`[Readability] Requesting article content from API for: ${url}`);
-    const response = await fetch('/api/reader', {
+    const response = await fetch('/api/crawler', {
       method: 'POST',
       signal: controller.signal,
       headers: {
