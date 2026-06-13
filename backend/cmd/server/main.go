@@ -7,6 +7,7 @@ import (
 	"github.com/vasugupta1/RSSFeed/backend/internal/client"
 	"github.com/vasugupta1/RSSFeed/backend/internal/config"
 	"github.com/vasugupta1/RSSFeed/backend/internal/handler"
+	"github.com/vasugupta1/RSSFeed/backend/internal/repository"
 	"github.com/vasugupta1/RSSFeed/backend/internal/server"
 	"github.com/vasugupta1/RSSFeed/backend/internal/service"
 )
@@ -26,11 +27,20 @@ func main() {
 	crawlerHandler := handler.NewCrawlerHandler(crawlerService)
 	feedHandler := handler.NewFeedHandler()
 
+	// Initalize Repository / Database
+
+	respository, err := repository.NewRepository(&repository.DatabaseConfiguration{})
+	if err != nil {
+		slog.Error("Failed to connect to server server", "error", err)
+		os.Exit(1)
+	}
+	defer respository.Db.Close()
 	// Start the server
 	app := &server.Application{
-		Config:         cfg,
-		CrawlerHandler: crawlerHandler,
-		FeedHandler:    feedHandler,
+		Config:            cfg,
+		CrawlerHandler:    crawlerHandler,
+		FeedHandler:       feedHandler,
+		RepositoryService: respository,
 	}
 
 	if err := app.Run(); err != nil {
