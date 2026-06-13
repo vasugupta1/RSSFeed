@@ -1,4 +1,4 @@
-package crawlerapiclient
+package client
 
 import (
 	"encoding/json"
@@ -6,16 +6,13 @@ import (
 	"io"
 	"net/http"
 	"strings"
+
+	"github.com/vasugupta1/RSSFeed/backend/internal/model"
 )
 
 type CrawlerApiClient struct {
 	baseUrl    string
 	httpClient *http.Client
-}
-
-type CrawlUrlResponse struct {
-	Url      string `json:"Url"`
-	Response string `json:"Response"`
 }
 
 func NewCrawlerClient(baseUrl string) *CrawlerApiClient {
@@ -25,7 +22,7 @@ func NewCrawlerClient(baseUrl string) *CrawlerApiClient {
 	}
 }
 
-func (c *CrawlerApiClient) CrawlUrl(url string) (*CrawlUrlResponse, error) {
+func (c *CrawlerApiClient) CrawlUrl(url string) (*model.CrawlUrlResponse, error) {
 	if url == "" {
 		return nil, fmt.Errorf("url cannot be null or empty")
 	}
@@ -42,7 +39,7 @@ func (c *CrawlerApiClient) CrawlUrl(url string) (*CrawlUrlResponse, error) {
 		return nil, err
 	}
 
-	var result CrawlUrlResponse
+	var result model.CrawlUrlResponse
 
 	err = json.Unmarshal(bodyBytes, &result)
 	if err != nil {
