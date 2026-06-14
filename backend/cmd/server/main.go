@@ -1,6 +1,8 @@
 package main
 
 import (
+	"context"
+	"log"
 	"log/slog"
 	"os"
 
@@ -17,6 +19,23 @@ func main() {
 
 	cfg := config.Load()
 
+	databaseCgf := &repository.DatabaseConfiguration{
+		ConnectionString: cfg.CosmosConnectionString,
+		CollectionNames:  cfg.CollectionNames,
+		DatabaseName:     cfg.DatabaseName,
+	}
+	respositoryService, err := repository.NewRepositoryService(databaseCgf)
+	if err != nil {
+		slog.Error("Failed to connect to server server", "error", err)
+		os.Exit(1)
+	}
+
+	defer func() {
+		if err = respositoryService.Client.Disconnect(context.TODO()); err != nil {
+			log.Fatal(err)
+		}
+	}()
+
 	// Initialize clients
 	crawlerClient := client.NewCrawlerClient(cfg.CrawlerApiUrl)
 
@@ -27,20 +46,12 @@ func main() {
 	crawlerHandler := handler.NewCrawlerHandler(crawlerService)
 	feedHandler := handler.NewFeedHandler()
 
-	// Initalize Repository / Database
-
-	respository, err := repository.NewRepository(&repository.DatabaseConfiguration{})
-	if err != nil {
-		slog.Error("Failed to connect to server server", "error", err)
-		os.Exit(1)
-	}
-	defer respository.Db.Close()
 	// Start the server
 	app := &server.Application{
 		Config:            cfg,
 		CrawlerHandler:    crawlerHandler,
 		FeedHandler:       feedHandler,
-		RepositoryService: respository,
+		RepositoryService: respositoryService,
 	}
 
 	if err := app.Run(); err != nil {
