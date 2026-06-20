@@ -13,10 +13,7 @@ func (app *Application) registerRoutes() http.Handler {
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.RequestID)
 
-	r.Get("/api/healthcheck", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
-	})
+	r.Get("/api/healthcheck", app.HealthHandler.HandleHealthCheck)
 	r.Post("/api/crawler", app.CrawlerHandler.HandleCrawl)
 	r.Post("/api/feed", app.FeedHandler.UpsertFeedUrl)
 

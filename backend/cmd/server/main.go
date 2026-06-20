@@ -46,12 +46,14 @@ func main() {
 	// Initialize handlers
 	crawlerHandler := handler.NewCrawlerHandler(crawlerService)
 	feedHandler := handler.NewFeedHandler(respositoryService)
+	healthHandler := handler.NewHealthCheckHandler()
 
 	// Start the server
 	app := &server.Application{
 		Config:         cfg,
 		CrawlerHandler: crawlerHandler,
 		FeedHandler:    feedHandler,
+		HealthHandler:  healthHandler,
 	}
 
 	if err := app.Run(); err != nil {

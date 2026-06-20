@@ -12,6 +12,7 @@ type Application struct {
 	Config         config.APIConfiguration
 	CrawlerHandler *handler.CrawlerHandler
 	FeedHandler    *handler.FeedHandler
+	HealthHandler  *handler.HealthCheckHandler
 }
 
 func (app *Application) Run() error {
