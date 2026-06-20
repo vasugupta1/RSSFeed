@@ -10,6 +10,7 @@ import (
 	"github.com/vasugupta1/RSSFeed/backend/internal/config"
 	"github.com/vasugupta1/RSSFeed/backend/internal/handler"
 	"github.com/vasugupta1/RSSFeed/backend/internal/repository"
+	"github.com/vasugupta1/RSSFeed/backend/internal/repository/models"
 	"github.com/vasugupta1/RSSFeed/backend/internal/server"
 	"github.com/vasugupta1/RSSFeed/backend/internal/service"
 )
@@ -19,12 +20,12 @@ func main() {
 
 	cfg := config.Load()
 
-	databaseCgf := &repository.DatabaseConfiguration{
+	databaseCgf := &models.RepositoryConfiguration{
 		ConnectionString: cfg.CosmosConnectionString,
 		CollectionNames:  cfg.CollectionNames,
 		DatabaseName:     cfg.DatabaseName,
 	}
-	respositoryService, err := repository.NewRepositoryService(databaseCgf)
+	respositoryService, err := repository.NewMongoRepository(databaseCgf)
 	if err != nil {
 		slog.Error("Failed to connect to server server", "error", err)
 		os.Exit(1)
@@ -44,14 +45,13 @@ func main() {
 
 	// Initialize handlers
 	crawlerHandler := handler.NewCrawlerHandler(crawlerService)
-	feedHandler := handler.NewFeedHandler()
+	feedHandler := handler.NewFeedHandler(respositoryService)
 
 	// Start the server
 	app := &server.Application{
-		Config:            cfg,
-		CrawlerHandler:    crawlerHandler,
-		FeedHandler:       feedHandler,
-		RepositoryService: respositoryService,
+		Config:         cfg,
+		CrawlerHandler: crawlerHandler,
+		FeedHandler:    feedHandler,
 	}
 
 	if err := app.Run(); err != nil {

@@ -6,14 +6,12 @@ import (
 
 	"github.com/vasugupta1/RSSFeed/backend/internal/config"
 	"github.com/vasugupta1/RSSFeed/backend/internal/handler"
-	"github.com/vasugupta1/RSSFeed/backend/internal/repository"
 )
 
 type Application struct {
-	Config            config.APIConfiguration
-	CrawlerHandler    *handler.CrawlerHandler
-	FeedHandler       *handler.FeedHandler
-	RepositoryService *repository.RepositoryService
+	Config         config.APIConfiguration
+	CrawlerHandler *handler.CrawlerHandler
+	FeedHandler    *handler.FeedHandler
 }
 
 func (app *Application) Run() error {

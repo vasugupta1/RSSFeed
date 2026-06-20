@@ -1,17 +1,23 @@
 package handler
 
-import "net/http"
+import (
+	"net/http"
+
+	"github.com/vasugupta1/RSSFeed/backend/internal/httputil"
+	"github.com/vasugupta1/RSSFeed/backend/internal/repository/interfaces"
+	"github.com/vasugupta1/RSSFeed/backend/internal/repository/models"
+)
 
 type FeedHandler struct {
+	Respository interfaces.FeedRepository
 }
 
-func NewFeedHandler() *FeedHandler {
-	return &FeedHandler{}
+func NewFeedHandler(respository interfaces.FeedRepository) *FeedHandler {
+	return &FeedHandler{Respository: respository}
 }
 
 func (h *FeedHandler) UpsertFeedUrl(w http.ResponseWriter, r *http.Request) {
-	//1. First make a call to get the xml from the url
-	// Also save the feed url in the database, that way we can retrieve the urls on load up
-	//2. Parse the xml and save current state of the feed this most likely might be stored in the redis cache
-	//3. Return 200
+
+	h.Respository.SaveFeed(r.Context(), models.Feed{})
+	httputil.WriteJSON(w, http.StatusOK, "ok", nil)
 }

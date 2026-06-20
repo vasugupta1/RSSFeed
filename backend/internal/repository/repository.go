@@ -2,24 +2,20 @@ package repository
 
 import (
 	"context"
+	"log/slog"
 
+	"github.com/vasugupta1/RSSFeed/backend/internal/repository/models"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
-type DatabaseConfiguration struct {
-	ConnectionString string
-	DatabaseName     string
-	CollectionNames  []string
-}
-
-type RepositoryService struct {
+type MongoRepository struct {
 	Client *mongo.Client
 	Db     *mongo.Database
 }
 
-func NewRepositoryService(config *DatabaseConfiguration) (*RepositoryService, error) {
+func NewMongoRepository(config *models.RepositoryConfiguration) (*MongoRepository, error) {
 	mongoOptions := options.Client().ApplyURI(config.ConnectionString)
 	client, err := mongo.Connect(mongoOptions)
 	if err != nil {
@@ -33,7 +29,7 @@ func NewRepositoryService(config *DatabaseConfiguration) (*RepositoryService, er
 	db := client.Database(config.DatabaseName)
 	ensureCollectionExists(db, config.CollectionNames)
 
-	return &RepositoryService{Db: db, Client: client}, nil
+	return &MongoRepository{Db: db, Client: client}, nil
 }
 
 func ensureCollectionExists(db *mongo.Database, collections []string) error {
@@ -55,6 +51,16 @@ func ensureCollectionExists(db *mongo.Database, collections []string) error {
 				return err
 			}
 		}
+	}
+
+	return nil
+}
+
+func (f *MongoRepository) SaveFeed(ctx context.Context, feed models.Feed) error {
+	collection := f.Db.Collection("feedurl")
+	if _, err := collection.InsertOne(ctx, feed); err != nil {
+		slog.Error("Failed to save feed in the database", "error", err, "feed", feed)
+		return err
 	}
 
 	return nil
