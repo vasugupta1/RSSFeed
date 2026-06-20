@@ -65,3 +65,26 @@ func (f *MongoRepository) SaveFeed(ctx context.Context, feed models.Feed) error 
 
 	return nil
 }
+
+func (f *MongoRepository) GetAllFeed(ctx context.Context) ([]models.Feed, error) {
+	collection := f.Db.Collection("feedurl")
+	cursor, err := collection.Find(ctx, bson.D{})
+	if err != nil {
+		return nil, err
+	}
+	len := cursor.RemainingBatchLength()
+	feeds := make([]models.Feed, 0, len)
+	for cursor.Next(ctx) {
+		var feed models.Feed
+		if err := cursor.Decode(&feed); err != nil {
+			return nil, err
+		}
+		feeds = append(feeds, feed)
+	}
+
+	if err := cursor.Err(); err != nil {
+		return nil, err
+	}
+
+	return feeds, nil
+}
