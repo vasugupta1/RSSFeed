@@ -4,11 +4,11 @@ import (
 	"context"
 
 	"github.com/vasugupta1/RSSFeed/backend/internal/client"
-	model "github.com/vasugupta1/RSSFeed/backend/internal/models"
+	"github.com/vasugupta1/RSSFeed/backend/internal/models"
 )
 
 type CrawlerService interface {
-	CrawlUrl(ctx context.Context, url string) (*model.CrawlUrlResponse, error)
+	CrawlUrl(ctx context.Context, url string) (*models.CrawlUrlResponse, error)
 }
 
 type crawlerService struct {
@@ -21,7 +21,7 @@ func NewCrawlerService(cc *client.CrawlerApiClient) CrawlerService {
 	}
 }
 
-func (s *crawlerService) CrawlUrl(ctx context.Context, url string) (*model.CrawlUrlResponse, error) {
+func (s *crawlerService) CrawlUrl(ctx context.Context, url string) (*models.CrawlUrlResponse, error) {
 	res, err := s.crawlerClient.CrawlUrl(url)
 	if err != nil {
 		return nil, err

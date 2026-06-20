@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strings"
 
-	model "github.com/vasugupta1/RSSFeed/backend/internal/models"
+	"github.com/vasugupta1/RSSFeed/backend/internal/models"
 )
 
 type CrawlerApiClient struct {
@@ -22,7 +22,7 @@ func NewCrawlerClient(baseUrl string) *CrawlerApiClient {
 	}
 }
 
-func (c *CrawlerApiClient) CrawlUrl(url string) (*model.CrawlUrlResponse, error) {
+func (c *CrawlerApiClient) CrawlUrl(url string) (*models.CrawlUrlResponse, error) {
 	if url == "" {
 		return nil, fmt.Errorf("url cannot be null or empty")
 	}
@@ -39,7 +39,7 @@ func (c *CrawlerApiClient) CrawlUrl(url string) (*model.CrawlUrlResponse, error)
 		return nil, err
 	}
 
-	var result model.CrawlUrlResponse
+	var result models.CrawlUrlResponse
 
 	err = json.Unmarshal(bodyBytes, &result)
 	if err != nil {

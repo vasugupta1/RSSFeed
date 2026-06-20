@@ -7,9 +7,9 @@ import (
 	"net/http"
 
 	"github.com/vasugupta1/RSSFeed/backend/internal/httputil"
-	model "github.com/vasugupta1/RSSFeed/backend/internal/models"
+	"github.com/vasugupta1/RSSFeed/backend/internal/models"
 	"github.com/vasugupta1/RSSFeed/backend/internal/repository/interfaces"
-	"github.com/vasugupta1/RSSFeed/backend/internal/repository/models"
+	repomodels "github.com/vasugupta1/RSSFeed/backend/internal/repository/models"
 )
 
 type FeedHandler struct {
@@ -36,7 +36,7 @@ func (h *FeedHandler) UpsertFeedUrl(w http.ResponseWriter, r *http.Request) {
 	httputil.WriteJSON(w, http.StatusOK, "ok", nil)
 }
 
-func callRssFeedUrls(url string) (*model.RssXml, error) {
+func callRssFeedUrls(url string) (*models.RssXml, error) {
 	client := &http.Client{}
 	res, err := client.Get(url)
 	if err != nil {
@@ -50,7 +50,7 @@ func callRssFeedUrls(url string) (*model.RssXml, error) {
 		return nil, err
 	}
 
-	var rss model.RssXml
+	var rss models.RssXml
 	xml_error := xml.Unmarshal(body, &rss)
 	if xml_error != nil {
 		return nil, xml_error
@@ -59,15 +59,15 @@ func callRssFeedUrls(url string) (*model.RssXml, error) {
 	return &rss, nil
 }
 
-func mapToFeed(rssXml *model.RssXml) (*models.Feed, error) {
-	dbArticles := make([]models.Articles, 0, len(rssXml.Channel.Items))
+func mapToFeed(rssXml *models.RssXml) (*repomodels.Feed, error) {
+	dbArticles := make([]repomodels.Articles, 0, len(rssXml.Channel.Items))
 	for _, item := range rssXml.Channel.Items {
-		dbArticles = append(dbArticles, models.Articles{
+		dbArticles = append(dbArticles, repomodels.Articles{
 			Title: item.Title,
 			URL:   item.Link,
 		})
 	}
-	return &models.Feed{
+	return &repomodels.Feed{
 		Title:       rssXml.Channel.Title,
 		Description: rssXml.Channel.Description,
 		Link:        rssXml.Channel.Link,

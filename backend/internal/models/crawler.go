@@ -1,4 +1,4 @@
-package model
+package models
 
 type CrawlerRequest struct {
 	URL string `json:"url"`

@@ -7,7 +7,7 @@ import (
 	"net/http"
 
 	"github.com/vasugupta1/RSSFeed/backend/internal/httputil"
-	model "github.com/vasugupta1/RSSFeed/backend/internal/models"
+	"github.com/vasugupta1/RSSFeed/backend/internal/models"
 	"github.com/vasugupta1/RSSFeed/backend/internal/service"
 )
 
@@ -37,13 +37,13 @@ func (h *CrawlerHandler) HandleCrawl(w http.ResponseWriter, r *http.Request) {
 	httputil.WriteJSON(w, http.StatusOK, serviceResponse, nil)
 }
 
-func parseCrawlerPayload(r *http.Request) (*model.CrawlerRequest, error) {
+func parseCrawlerPayload(r *http.Request) (*models.CrawlerRequest, error) {
 	bodyData, err := io.ReadAll(r.Body)
 	if err != nil {
 		return nil, err
 	}
 	defer r.Body.Close()
-	requestBody := &model.CrawlerRequest{}
+	requestBody := &models.CrawlerRequest{}
 	err = json.Unmarshal(bodyData, requestBody)
 	if err != nil {
 		return nil, err
