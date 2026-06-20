@@ -1,8 +1,6 @@
 package handler
 
 import (
-	"encoding/json"
-	"io"
 	"log/slog"
 	"net/http"
 
@@ -22,7 +20,7 @@ func NewCrawlerHandler(s service.CrawlerService) *CrawlerHandler {
 }
 
 func (h *CrawlerHandler) HandleCrawl(w http.ResponseWriter, r *http.Request) {
-	requestBody, err := parseCrawlerPayload(r)
+	requestBody, err := httputil.ReadJSON[models.CrawlerRequest](r)
 	if err != nil {
 		slog.Error("Failed to parse crawler request", "error", err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -35,18 +33,4 @@ func (h *CrawlerHandler) HandleCrawl(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httputil.WriteJSON(w, http.StatusOK, serviceResponse, nil)
-}
-
-func parseCrawlerPayload(r *http.Request) (*models.CrawlerRequest, error) {
-	bodyData, err := io.ReadAll(r.Body)
-	if err != nil {
-		return nil, err
-	}
-	defer r.Body.Close()
-	requestBody := &models.CrawlerRequest{}
-	err = json.Unmarshal(bodyData, requestBody)
-	if err != nil {
-		return nil, err
-	}
-	return requestBody, nil
 }
