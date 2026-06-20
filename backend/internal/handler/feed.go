@@ -21,8 +21,12 @@ func NewFeedHandler(respository interfaces.FeedRepository) *FeedHandler {
 }
 
 func (h *FeedHandler) UpsertFeedUrl(w http.ResponseWriter, r *http.Request) {
-
-	rssXml, err := callRssFeedUrls("https://feeds.skynews.com/feeds/rss/home.xml")
+	requestBody, err := httputil.ReadJSON[models.UpsertFeedRequest](r)
+	if err != nil {
+		slog.Error("Failed to parse crawler request", "error", err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	}
+	rssXml, err := callRssFeedUrls(requestBody.URL)
 	if err != nil {
 		slog.Error("Failed to parse crawler request", "error", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)

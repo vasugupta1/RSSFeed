@@ -17,3 +17,13 @@ func WriteJSON(w http.ResponseWriter, status int, value any, headers http.Header
 	w.WriteHeader(status)
 	json.NewEncoder(w).Encode(value)
 }
+
+func ReadJSON[T any](r *http.Request) (T, error) {
+	var result T
+	defer r.Body.Close()
+	err := json.NewDecoder(r.Body).Decode(&result)
+	if err != nil {
+		return result, err
+	}
+	return result, nil
+}
