@@ -7,7 +7,7 @@ import (
 	"net/http"
 
 	"github.com/vasugupta1/RSSFeed/backend/internal/httputil"
-	"github.com/vasugupta1/RSSFeed/backend/internal/model"
+	model "github.com/vasugupta1/RSSFeed/backend/internal/models"
 	"github.com/vasugupta1/RSSFeed/backend/internal/service"
 )
 

@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/vasugupta1/RSSFeed/backend/internal/client"
-	"github.com/vasugupta1/RSSFeed/backend/internal/model"
+	model "github.com/vasugupta1/RSSFeed/backend/internal/models"
 )
 
 type CrawlerService interface {

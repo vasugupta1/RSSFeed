@@ -15,7 +15,8 @@ var mongo = builder.AddMongoDB("rssfeed")
     .WithImage("mongo")
     .WithImageTag("8.2.9-noble")
     .WithEnvironment("GLIBC_TUNABLES", "glibc.pthread.rseq=1")
-    .WithLifetime(ContainerLifetime.Persistent);
+    .WithLifetime(ContainerLifetime.Persistent)
+    .WithMongoExpress();
 
 var mongodb = mongo.AddDatabase("rssfeedurl");
 

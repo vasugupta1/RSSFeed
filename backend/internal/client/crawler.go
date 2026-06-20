@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/vasugupta1/RSSFeed/backend/internal/model"
+	model "github.com/vasugupta1/RSSFeed/backend/internal/models"
 )
 
 type CrawlerApiClient struct {
