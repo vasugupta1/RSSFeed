@@ -16,6 +16,7 @@ func (app *Application) registerRoutes() http.Handler {
 	r.Get("/api/healthcheck", app.HealthHandler.HandleHealthCheck)
 	r.Post("/api/crawler", app.CrawlerHandler.HandleCrawl)
 	r.Post("/api/feed", app.FeedHandler.UpsertFeedUrl)
+	r.Get("/api/articles", app.GetAllArticlesHandler.GetAllArticles)
 
 	return r
 }

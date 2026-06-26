@@ -11,4 +11,5 @@ type FeedRepository interface {
 	GetAllFeed(ctx context.Context) ([]models.Feed, error)
 	SaveArticle(ctx context.Context, articleSummary models.ArticleSummary) error
 	GetArticle(ctx context.Context, url string) (*models.ArticleSummary, error)
+	GetAllArticles(ctx context.Context) ([]models.ArticleSummary, error)
 }

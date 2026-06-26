@@ -109,3 +109,26 @@ func (f *MongoRepository) GetArticle(ctx context.Context, url string) (*models.A
 	}
 	return article, nil
 }
+
+func (f *MongoRepository) GetAllArticles(ctx context.Context) ([]models.ArticleSummary, error) {
+	collection := f.Db.Collection("feedarticle")
+	cursor, err := collection.Find(ctx, bson.D{})
+	if err != nil {
+		return nil, err
+	}
+	len := cursor.RemainingBatchLength()
+	articles := make([]models.ArticleSummary, 0, len)
+	for cursor.Next(ctx) {
+		var article models.ArticleSummary
+		if err := cursor.Decode(&article); err != nil {
+			return nil, err
+		}
+		articles = append(articles, article)
+	}
+
+	if err := cursor.Err(); err != nil {
+		return nil, err
+	}
+
+	return articles, nil
+}

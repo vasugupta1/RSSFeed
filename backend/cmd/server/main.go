@@ -55,14 +55,16 @@ func main() {
 	crawlerHandler := handler.NewCrawlerHandler(crawlerService, respositoryService)
 	feedHandler := handler.NewFeedHandler(respositoryService, articleChannel)
 	healthHandler := handler.NewHealthCheckHandler()
+	getAllArticlesHandler := handler.NewGetAllArticlesHandler(respositoryService)
 
 	// Start the server
 	app := &server.Application{
-		Config:         cfg,
-		CrawlerHandler: crawlerHandler,
-		FeedHandler:    feedHandler,
-		HealthHandler:  healthHandler,
-		ArticleChannel: articleChannel,
+		Config:                cfg,
+		CrawlerHandler:        crawlerHandler,
+		FeedHandler:           feedHandler,
+		HealthHandler:         healthHandler,
+		GetAllArticlesHandler: getAllArticlesHandler,
+		ArticleChannel:        articleChannel,
 	}
 
 	if err := app.Run(); err != nil {

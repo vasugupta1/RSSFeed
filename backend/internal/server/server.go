@@ -10,11 +10,12 @@ import (
 )
 
 type Application struct {
-	Config         config.APIConfiguration
-	CrawlerHandler *handler.CrawlerHandler
-	FeedHandler    *handler.FeedHandler
-	HealthHandler  *handler.HealthCheckHandler
-	ArticleChannel chan models.Articles
+	Config                config.APIConfiguration
+	CrawlerHandler        *handler.CrawlerHandler
+	FeedHandler           *handler.FeedHandler
+	HealthHandler         *handler.HealthCheckHandler
+	GetAllArticlesHandler *handler.GetAllArticlesHandler
+	ArticleChannel        chan models.Articles
 }
 
 func (app *Application) Run() error {
