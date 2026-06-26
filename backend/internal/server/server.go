@@ -6,6 +6,7 @@ import (
 
 	"github.com/vasugupta1/RSSFeed/backend/internal/config"
 	"github.com/vasugupta1/RSSFeed/backend/internal/handler"
+	"github.com/vasugupta1/RSSFeed/backend/internal/repository/models"
 )
 
 type Application struct {
@@ -13,6 +14,7 @@ type Application struct {
 	CrawlerHandler *handler.CrawlerHandler
 	FeedHandler    *handler.FeedHandler
 	HealthHandler  *handler.HealthCheckHandler
+	ArticleChannel chan models.Articles
 }
 
 func (app *Application) Run() error {

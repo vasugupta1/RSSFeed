@@ -16,7 +16,7 @@ func Load() APIConfiguration {
 		CrawlerApiUrl:          GetEnv("services__rssfeedai__https__0", "http://localhost:8081"),
 		CosmosConnectionString: GetEnv("ConnectionStrings__rssfeedurl", ""),
 		DatabaseName:           "rssfeedurl",
-		CollectionNames:        []string{"feedurl"},
+		CollectionNames:        []string{"feedurl", "feedarticle"},
 	}
 }
 

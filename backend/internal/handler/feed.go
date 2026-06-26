@@ -13,11 +13,12 @@ import (
 )
 
 type FeedHandler struct {
-	Respository interfaces.FeedRepository
+	Respository     interfaces.FeedRepository
+	articlesChannel chan repomodels.Articles
 }
 
-func NewFeedHandler(respository interfaces.FeedRepository) *FeedHandler {
-	return &FeedHandler{Respository: respository}
+func NewFeedHandler(respository interfaces.FeedRepository, articlesChannel chan repomodels.Articles) *FeedHandler {
+	return &FeedHandler{Respository: respository, articlesChannel: articlesChannel}
 }
 
 func (h *FeedHandler) UpsertFeedUrl(w http.ResponseWriter, r *http.Request) {
@@ -37,6 +38,9 @@ func (h *FeedHandler) UpsertFeedUrl(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 	h.Respository.SaveFeed(r.Context(), *feed)
+	for _, article := range feed.Articles {
+		h.articlesChannel <- article
+	}
 	httputil.WriteJSON(w, http.StatusOK, "ok", nil)
 }
 

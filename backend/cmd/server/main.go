@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"os"
 
+	"github.com/vasugupta1/RSSFeed/backend/internal/background"
 	"github.com/vasugupta1/RSSFeed/backend/internal/client"
 	"github.com/vasugupta1/RSSFeed/backend/internal/config"
 	"github.com/vasugupta1/RSSFeed/backend/internal/handler"
@@ -43,9 +44,16 @@ func main() {
 	// Initialize services
 	crawlerService := service.NewCrawlerService(crawlerClient)
 
+	// Initialize Background service
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	articleChannel := make(chan models.Articles, 100)
+	articleSaveBackGroundService := background.NewFetchArticleBackGroundService(articleChannel, crawlerService, respositoryService)
+	go articleSaveBackGroundService.FetchArticleAndCache(ctx)
+
 	// Initialize handlers
-	crawlerHandler := handler.NewCrawlerHandler(crawlerService)
-	feedHandler := handler.NewFeedHandler(respositoryService)
+	crawlerHandler := handler.NewCrawlerHandler(crawlerService, respositoryService)
+	feedHandler := handler.NewFeedHandler(respositoryService, articleChannel)
 	healthHandler := handler.NewHealthCheckHandler()
 
 	// Start the server
@@ -54,6 +62,7 @@ func main() {
 		CrawlerHandler: crawlerHandler,
 		FeedHandler:    feedHandler,
 		HealthHandler:  healthHandler,
+		ArticleChannel: articleChannel,
 	}
 
 	if err := app.Run(); err != nil {

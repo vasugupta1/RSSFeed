@@ -8,4 +8,7 @@ import (
 
 type FeedRepository interface {
 	SaveFeed(ctx context.Context, feed models.Feed) error
+	GetAllFeed(ctx context.Context) ([]models.Feed, error)
+	SaveArticle(ctx context.Context, articleSummary models.ArticleSummary) error
+	GetArticle(ctx context.Context, url string) (*models.ArticleSummary, error)
 }

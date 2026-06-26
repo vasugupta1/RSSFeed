@@ -32,6 +32,20 @@ function App() {
     }
 
     try {
+      // Call backend API
+      const backendResponse = await fetch('/api/feed', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ url: feedUrl })
+      });
+      
+      if (!backendResponse.ok) {
+        throw new Error(`Backend error: ${backendResponse.status} ${backendResponse.statusText}`);
+      }
+
+      // Fetch locally to parse and display in the UI
       const response = await fetch(feedUrl);
       if (!response.ok) {
         throw new Error(`Failed to fetch feed: ${response.status} ${response.statusText}`);

@@ -88,3 +88,24 @@ func (f *MongoRepository) GetAllFeed(ctx context.Context) ([]models.Feed, error)
 
 	return feeds, nil
 }
+
+func (f *MongoRepository) SaveArticle(ctx context.Context, articleSummary models.ArticleSummary) error {
+	collection := f.Db.Collection("feedarticle")
+	if _, err := collection.InsertOne(ctx, articleSummary); err != nil {
+		slog.Error("Failed to save feed in the database", "error", err, "article summary", articleSummary)
+		return err
+	}
+
+	return nil
+}
+
+func (f *MongoRepository) GetArticle(ctx context.Context, url string) (*models.ArticleSummary, error) {
+	collection := f.Db.Collection("feedarticle")
+	filter := bson.D{{Key: "url", Value: url}}
+	var article *models.ArticleSummary
+	err := collection.FindOne(ctx, filter).Decode(&article)
+	if err != nil {
+		return nil, err
+	}
+	return article, nil
+}
