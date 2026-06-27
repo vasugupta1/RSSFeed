@@ -17,6 +17,7 @@ func (app *Application) registerRoutes() http.Handler {
 	r.Post("/api/crawler", app.CrawlerHandler.HandleCrawl)
 	r.Post("/api/feed", app.FeedHandler.UpsertFeedUrl)
 	r.Get("/api/articles", app.GetAllArticlesHandler.GetAllArticles)
+	r.Delete("/api/article", app.DeleteArticleHandler.DeleteArticle)
 
 	return r
 }

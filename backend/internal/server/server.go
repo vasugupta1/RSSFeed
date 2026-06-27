@@ -15,6 +15,7 @@ type Application struct {
 	FeedHandler           *handler.FeedHandler
 	HealthHandler         *handler.HealthCheckHandler
 	GetAllArticlesHandler *handler.GetAllArticlesHandler
+	DeleteArticleHandler  *handler.DeleteArticleHandler
 	ArticleChannel        chan models.Articles
 }
 

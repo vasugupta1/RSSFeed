@@ -132,3 +132,15 @@ func (f *MongoRepository) GetAllArticles(ctx context.Context) ([]models.ArticleS
 
 	return articles, nil
 }
+
+func (f *MongoRepository) DeleteArticle(ctx context.Context, url string) error {
+	collection := f.Db.Collection("feedarticle")
+	filter := bson.D{{Key: "url", Value: url}}
+	result, error := collection.DeleteOne(ctx, filter)
+	if !result.Acknowledged || result.DeletedCount != 1 || error != nil {
+		slog.Error("Failed to delete article from the database", "error", error, "url", url)
+		return error
+	}
+
+	return nil
+}
