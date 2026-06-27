@@ -13,18 +13,29 @@ type CrawlerService interface {
 
 type crawlerService struct {
 	crawlerClient *client.CrawlerApiClient
+	polly         *Polly[*models.CrawlUrlResponse]
 }
 
-func NewCrawlerService(cc *client.CrawlerApiClient) CrawlerService {
+func NewCrawlerService(cc *client.CrawlerApiClient, p *Polly[*models.CrawlUrlResponse]) CrawlerService {
 	return &crawlerService{
 		crawlerClient: cc,
+		polly:         p,
 	}
 }
 
 func (s *crawlerService) CrawlUrl(ctx context.Context, url string) (*models.CrawlUrlResponse, error) {
-	res, err := s.crawlerClient.CrawlUrl(url)
-	if err != nil {
-		return nil, err
+
+	result, error := s.polly.Process(ctx, func() (*models.CrawlUrlResponse, error) {
+		res, err := s.crawlerClient.CrawlUrl(url)
+		if err != nil {
+			return nil, err
+		}
+		return res, nil
+	})
+
+	if error != nil {
+		return nil, error
 	}
-	return res, nil
+
+	return result, nil
 }
