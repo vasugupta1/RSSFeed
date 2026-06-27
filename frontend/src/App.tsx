@@ -1,5 +1,4 @@
 import { useState, useMemo, useEffect } from 'react';
-import { INITIAL_FEEDS, SAMPLE_XML_FEED } from './mockData';
 import type { Feed, FeedItem } from './mockData';
 import { parseXml } from './utils/feedParser';
 import Header from './components/Header';
@@ -10,7 +9,7 @@ import AddFeedModal from './components/AddFeedModal';
 
 function App() {
   // Application State
-  const [feeds, setFeeds] = useState<Feed[]>(INITIAL_FEEDS);
+  const [feeds, setFeeds] = useState<Feed[]>([]);
   const [activeFeedId, setActiveFeedId] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [starredOnly, setStarredOnly] = useState<boolean>(false);
@@ -20,6 +19,21 @@ function App() {
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [feedUrl, setFeedUrl] = useState<string>('');
   const [modalError, setModalError] = useState<string | null>(null);
+
+  // Cached AI Summaries State
+  const [cachedSummaries, setCachedSummaries] = useState<Set<string>>(new Set());
+
+  // Fetch cached AI summaries on mount
+  useEffect(() => {
+    fetch('/api/articles')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setCachedSummaries(new Set(data.map((item: any) => item.url)));
+        }
+      })
+      .catch(err => console.error('Failed to fetch cached summaries:', err));
+  }, []);
 
   // Add custom feed
   const handleAddFeed = async (e: React.FormEvent) => {
@@ -127,6 +141,8 @@ function App() {
     let unreadAll = 0;
     let totalStarred = 0;
 
+    let totalSummarized = 0;
+
     feeds.forEach(feed => {
       let total = 0;
       let unread = 0;
@@ -134,6 +150,7 @@ function App() {
         total++;
         if (!item.read) unread++;
         if (item.starred) totalStarred++;
+        if (cachedSummaries.has(item.link)) totalSummarized++;
       });
       stats[feed.id] = { total, unread };
       totalAll += total;
@@ -143,18 +160,22 @@ function App() {
     return {
       all: { total: totalAll, unread: unreadAll },
       starred: { total: totalStarred, unread: 0 },
+      summarized: { total: totalSummarized, unread: 0 },
       byFeed: stats
     };
-  }, [feeds]);
+  }, [feeds, cachedSummaries]);
 
   // Filtered list of articles to display in the middle column
   const filteredArticles = useMemo(() => {
     return allArticles.filter(article => {
       // Feed filter
-      if (activeFeedId !== 'all' && activeFeedId !== 'starred' && article.feedId !== activeFeedId) {
+      if (activeFeedId !== 'all' && activeFeedId !== 'starred' && activeFeedId !== 'summarized' && article.feedId !== activeFeedId) {
         return false;
       }
       if (activeFeedId === 'starred' && !article.starred) {
+        return false;
+      }
+      if (activeFeedId === 'summarized' && !cachedSummaries.has(article.link)) {
         return false;
       }
       
@@ -222,6 +243,7 @@ function App() {
           activeArticleId={activeArticleId}
           handleSelectArticle={handleSelectArticle}
           handleToggleStar={handleToggleStar}
+          cachedSummaries={cachedSummaries}
         />
 
         <ReaderView

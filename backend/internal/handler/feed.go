@@ -41,7 +41,7 @@ func (h *FeedHandler) UpsertFeedUrl(w http.ResponseWriter, r *http.Request) {
 	for _, article := range feed.Articles {
 		h.articlesChannel <- article
 	}
-	httputil.WriteJSON(w, http.StatusOK, "ok", nil)
+	httputil.WriteJSON(w, http.StatusCreated, "created", nil)
 }
 
 func callRssFeedUrls(url string) (*models.RssXml, error) {

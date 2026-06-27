@@ -12,6 +12,7 @@ interface ArticleListProps {
   activeArticleId: string | null;
   handleSelectArticle: (id: string) => void;
   handleToggleStar: (id: string, e?: React.MouseEvent) => void;
+  cachedSummaries?: Set<string>;
 }
 
 export default function ArticleList({
@@ -20,11 +21,13 @@ export default function ArticleList({
   feeds,
   activeArticleId,
   handleSelectArticle,
-  handleToggleStar
+  handleToggleStar,
+  cachedSummaries = new Set<string>()
 }: ArticleListProps) {
   const getHeaderTitle = () => {
     if (activeFeedId === 'all') return 'All Articles';
     if (activeFeedId === 'starred') return 'Starred';
+    if (activeFeedId === 'summarized') return 'AI Summarized';
     return feeds.find(f => f.id === activeFeedId)?.title || 'Articles';
   };
 
@@ -54,7 +57,10 @@ export default function ArticleList({
               onClick={() => handleSelectArticle(article.id)}
             >
               <div className="flex items-start justify-between gap-3">
-                <h3 className="text-[14px] font-semibold text-primary leading-snug transition-colors group-hover:text-brand">{article.title}</h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-[14px] font-semibold text-primary leading-snug transition-colors group-hover:text-brand">{article.title}</h3>
+                  {cachedSummaries.has(article.link) && <span title="AI Summarized" className="text-[10px]">✨</span>}
+                </div>
                 {!article.read && <span className="w-2 h-2 bg-brand rounded-full shrink-0 mt-1.5 shadow-[0_0_6px_rgba(99,102,241,0.6)]" title="Unread"></span>}
               </div>
               

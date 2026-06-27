@@ -1,7 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { INITIAL_FEEDS, SAMPLE_XML_FEED } from './mockData';
 import type { Feed, FeedItem } from './mockData';
-import { parseXml } from './utils/feedParser';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import ArticleList from './components/ArticleList';
@@ -10,7 +8,7 @@ import AddFeedModal from './components/AddFeedModal';
 
 function RssFeedWebApp() {
   // Application State
-  const [feeds, setFeeds] = useState<Feed[]>(INITIAL_FEEDS);
+  const [feeds, setFeeds] = useState<Feed[]>([]);
   const [activeFeedId, setActiveFeedId] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [starredOnly, setStarredOnly] = useState<boolean>(false);
@@ -18,93 +16,84 @@ function RssFeedWebApp() {
   
   // Custom XML Modal State
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
-  const [customXmlInput, setCustomXmlInput] = useState<string>('');
+  const [feedUrl, setFeedUrl] = useState<string>('');
   const [modalError, setModalError] = useState<string | null>(null);
-  
-  // Backend Integration State
-  const [isIngesting, setIsIngesting] = useState<boolean>(false);
 
-  // Add custom feed via backend MapIngestFeedEndpoint (POST /api/ingestfeed/{id})
+  // Fetch all articles from the backend GET /api/articles
+  const fetchAllArticles = async () => {
+    try {
+      const res = await fetch('/api/articles');
+      if (!res.ok) return;
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        // Build a feed from backend articles
+        const backendFeed: Feed = {
+          id: 'backend',
+          title: 'Subscribed Feeds',
+          link: '',
+          description: 'Articles from your subscribed RSS feeds',
+          items: data
+            .filter((item: any) => item.Url)
+            .map((item: any, idx: number) => ({
+              id: `backend-${idx}`,
+              title: item.Title || item.Url,
+              link: item.Url,
+              description: item.Response || '',
+              pubDate: new Date().toUTCString(),
+              read: false,
+              starred: false,
+            })),
+        };
+        // Replace any existing backend feed, keep the rest
+        setFeeds(prev => {
+          const withoutBackend = prev.filter(f => f.id !== 'backend');
+          return backendFeed.items.length > 0
+            ? [...withoutBackend, backendFeed]
+            : withoutBackend;
+        });
+      }
+    } catch (err) {
+      console.error('Failed to fetch articles:', err);
+    }
+  };
+
+  // Load articles from backend on mount
+  useEffect(() => {
+    fetchAllArticles();
+  }, []);
+
+  // Add custom feed via backend POST /api/feed
   const handleAddFeed = async (e: React.FormEvent) => {
     e.preventDefault();
     setModalError(null);
 
-    if (!customXmlInput.trim()) {
-      setModalError('Feed XML content cannot be empty.');
+    if (!feedUrl.trim()) {
+      setModalError('Feed URL cannot be empty.');
       return;
     }
 
-    const feedId = `feed-${Date.now()}`;
-    setIsIngesting(true);
-
     try {
-      console.log(`[RssFeedWebApp] Invoking backend endpoint: POST /api/ingestfeed/${feedId}`);
-      
-      const response = await fetch(`/api/ingestfeed/${feedId}`, {
+      // Call backend API
+      const backendResponse = await fetch('/api/feed', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/xml',
+          'Content-Type': 'application/json'
         },
-        body: customXmlInput,
+        body: JSON.stringify({ url: feedUrl })
       });
-
-      if (!response.ok) {
-        throw new Error(`Backend ingestion failed: ${response.status} ${response.statusText}`);
+      
+      if (!backendResponse.ok) {
+        throw new Error(`Backend error: ${backendResponse.status} ${backendResponse.statusText}`);
       }
 
-      console.log('[RssFeedWebApp] Ingestion call succeeded. Decoding response.');
-
-      let newFeed: Feed;
-      const responseText = await response.text();
-
-      if (responseText) {
-        try {
-          // If the backend has been updated to return the parsed feed as JSON:
-          const parsedJson = JSON.parse(responseText);
-          newFeed = {
-            id: feedId,
-            title: parsedJson.title || 'Untitled Feed',
-            link: parsedJson.link || '',
-            description: parsedJson.description || 'No description available.',
-            isCustom: true,
-            items: (parsedJson.items || []).map((item: any, idx: number) => ({
-              id: `custom-item-${Date.now()}-${idx}`,
-              title: item.title || 'Untitled Article',
-              link: item.link || '',
-              description: item.description || '',
-              pubDate: item.pubDate || new Date().toUTCString(),
-              read: false,
-              starred: false,
-            })),
-          };
-        } catch {
-          // If parsing response body fails, fall back to parsing the custom XML locally
-          console.log('[RssFeedWebApp] Response body is not JSON, parsing XML input locally.');
-          newFeed = parseXml(customXmlInput);
-        }
-      } else {
-        // If response body is empty, fall back to parsing the custom XML locally
-        console.log('[RssFeedWebApp] Response body is empty (200 OK), parsing XML input locally.');
-        newFeed = parseXml(customXmlInput);
-      }
-
-      setFeeds([...feeds, newFeed]);
-      setActiveFeedId(newFeed.id);
+      // Success — close modal, clear input, reload articles from backend
       setIsModalOpen(false);
-      setCustomXmlInput('');
+      setFeedUrl('');
+      await fetchAllArticles();
     } catch (err) {
-      console.error('[RssFeedWebApp] Ingestion/Parsing error occurred:', err);
-      const errMsg = err instanceof Error ? err.message : 'An error occurred during backend ingestion.';
+      const errMsg = err instanceof Error ? err.message : 'Failed to add feed.';
       setModalError(errMsg);
-    } finally {
-      setIsIngesting(false);
     }
-  };
-
-  // Load sample feed XML in modal for testing
-  const handleLoadSample = () => {
-    setCustomXmlInput(SAMPLE_XML_FEED);
-    setModalError(null);
   };
 
   // Toggle article starred state
@@ -278,12 +267,10 @@ function RssFeedWebApp() {
       <AddFeedModal
         isModalOpen={isModalOpen}
         setIsModalOpen={setIsModalOpen}
-        customXmlInput={customXmlInput}
-        setCustomXmlInput={setCustomXmlInput}
+        feedUrl={feedUrl}
+        setFeedUrl={setFeedUrl}
         modalError={modalError}
         handleAddFeed={handleAddFeed}
-        handleLoadSample={handleLoadSample}
-        isIngesting={isIngesting}
       />
     </div>
   );

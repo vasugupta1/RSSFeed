@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/vasugupta1/RSSFeed/backend/internal/httputil"
+	"github.com/vasugupta1/RSSFeed/backend/internal/models"
 	"github.com/vasugupta1/RSSFeed/backend/internal/repository/interfaces"
 )
 
@@ -23,5 +24,13 @@ func (h *GetAllArticlesHandler) GetAllArticles(w http.ResponseWriter, r *http.Re
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	httputil.WriteJSON(w, http.StatusOK, articles, nil)
+	response := make([]models.CrawlUrlResponse, len(articles))
+	for _, article := range articles {
+		response = append(response, models.CrawlUrlResponse{
+			Url:      article.Url,
+			Response: article.Summary,
+			Title:    article.Title,
+		})
+	}
+	httputil.WriteJSON(w, http.StatusOK, response, nil)
 }

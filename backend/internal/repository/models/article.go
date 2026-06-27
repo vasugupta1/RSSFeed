@@ -10,4 +10,5 @@ type ArticleSummary struct {
 	ID      bson.ObjectID `bson:"_id,omitempty" json:"id"`
 	Url     string        `bson:"url" json:"url"`
 	Summary string        `bson:"summary" json:"summary"`
+	Title   string        `bson:"title" json:"title"`
 }

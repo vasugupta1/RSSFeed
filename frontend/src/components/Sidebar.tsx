@@ -8,6 +8,7 @@ interface SidebarProps {
   feedStats: {
     all: { total: number; unread: number };
     starred: { total: number; unread: number };
+    summarized?: { total: number; unread: number };
     byFeed: Record<string, { total: number; unread: number }>;
   };
 }
@@ -59,6 +60,22 @@ export default function Sidebar({
           </div>
           <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 max-md:hidden ${activeFeedId === 'starred' ? 'bg-brand text-white' : 'bg-border-custom text-secondary'}`}>
             {feedStats.starred.total}
+          </span>
+        </button>
+
+        {/* Summarized */}
+        <button 
+          className={`group flex items-center justify-between p-2.5 border-0 rounded-xl text-sm cursor-pointer text-left transition-all w-full max-md:justify-center max-md:p-2 ${activeFeedId === 'summarized' ? 'bg-brand-light text-brand font-medium' : 'bg-transparent text-secondary hover:bg-card-hover hover:text-primary'}`}
+          onClick={() => { setActiveFeedId('summarized'); setStarredOnly(false); }}
+        >
+          <div className="flex items-center gap-2.5 overflow-hidden">
+            <span className={`flex items-center justify-center w-6 h-6 rounded-lg text-[11px] font-bold shrink-0 transition-all max-md:w-9 max-md:h-9 ${activeFeedId === 'summarized' ? 'bg-brand text-white' : 'bg-indigo-500/10 text-indigo-500'}`}>
+              ✨
+            </span>
+            <span className="truncate max-md:hidden">AI Summarized</span>
+          </div>
+          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 max-md:hidden ${activeFeedId === 'summarized' ? 'bg-brand text-white' : 'bg-border-custom text-secondary'}`}>
+            {feedStats.summarized?.total || 0}
           </span>
         </button>
       </div>
