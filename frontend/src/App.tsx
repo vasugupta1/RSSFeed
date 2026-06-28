@@ -18,6 +18,7 @@ function App() {
   // Custom XML Modal State
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [feedUrl, setFeedUrl] = useState<string>('');
+  const [feedFormat, setFeedFormat] = useState<'xml' | 'atom'>('xml');
   const [modalError, setModalError] = useState<string | null>(null);
 
   // Cached AI Summaries State
@@ -52,7 +53,7 @@ function App() {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ url: feedUrl })
+        body: JSON.stringify({ url: feedUrl, format: feedFormat })
       });
       
       if (!backendResponse.ok) {
@@ -70,6 +71,7 @@ function App() {
       setActiveFeedId(newFeed.id);
       setIsModalOpen(false);
       setFeedUrl('');
+      setFeedFormat('xml');
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : 'Failed to fetch or parse feed.';
       setModalError(errMsg);
@@ -260,6 +262,8 @@ function App() {
         setIsModalOpen={setIsModalOpen}
         feedUrl={feedUrl}
         setFeedUrl={setFeedUrl}
+        feedFormat={feedFormat}
+        setFeedFormat={setFeedFormat}
         modalError={modalError}
         handleAddFeed={handleAddFeed}
       />

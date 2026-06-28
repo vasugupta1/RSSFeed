@@ -3,6 +3,8 @@ interface AddFeedModalProps {
   setIsModalOpen: (open: boolean) => void;
   feedUrl: string;
   setFeedUrl: (url: string) => void;
+  feedFormat: 'xml' | 'atom';
+  setFeedFormat: (format: 'xml' | 'atom') => void;
   modalError: string | null;
   handleAddFeed: (e: React.FormEvent) => void;
   isIngesting?: boolean;
@@ -13,6 +15,8 @@ export default function AddFeedModal({
   setIsModalOpen,
   feedUrl,
   setFeedUrl,
+  feedFormat,
+  setFeedFormat,
   modalError,
   handleAddFeed,
   isIngesting = false
@@ -56,7 +60,49 @@ export default function AddFeedModal({
                 disabled={isIngesting}
                 required
               />
-              {/* Sample load button removed */}
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label className="text-xs font-semibold text-secondary">Feed Format</label>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  className={`flex-1 px-4 py-2.5 rounded-xl text-sm font-medium border transition-all cursor-pointer ${
+                    feedFormat === 'xml'
+                      ? 'bg-brand border-brand text-white shadow-sm'
+                      : 'bg-app border-border-custom text-secondary hover:bg-card-hover hover:text-primary'
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
+                  onClick={() => setFeedFormat('xml')}
+                  disabled={isIngesting}
+                >
+                  <span className="flex items-center justify-center gap-2">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                      <polyline points="14 2 14 8 20 8" />
+                    </svg>
+                    RSS (XML)
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  className={`flex-1 px-4 py-2.5 rounded-xl text-sm font-medium border transition-all cursor-pointer ${
+                    feedFormat === 'atom'
+                      ? 'bg-brand border-brand text-white shadow-sm'
+                      : 'bg-app border-border-custom text-secondary hover:bg-card-hover hover:text-primary'
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
+                  onClick={() => setFeedFormat('atom')}
+                  disabled={isIngesting}
+                >
+                  <span className="flex items-center justify-center gap-2">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="1" />
+                      <ellipse cx="12" cy="12" rx="10" ry="4.5" transform="rotate(45 12 12)" />
+                      <ellipse cx="12" cy="12" rx="10" ry="4.5" transform="rotate(-45 12 12)" />
+                    </svg>
+                    Atom
+                  </span>
+                </button>
+              </div>
             </div>
           </div>
 

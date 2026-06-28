@@ -1,5 +1,6 @@
 package models
 
 type UpsertFeedRequest struct {
-	URL string `json:"url"`
+	URL    string `json:"url"`
+	Format string `json:"format"`
 }

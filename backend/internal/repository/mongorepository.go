@@ -112,7 +112,10 @@ func (f *MongoRepository) GetArticle(ctx context.Context, url string) (*models.A
 
 func (f *MongoRepository) GetAllArticles(ctx context.Context) ([]models.ArticleSummary, error) {
 	collection := f.Db.Collection("feedarticle")
-	cursor, err := collection.Find(ctx, bson.D{})
+	filter := bson.D{}
+	sort := bson.D{{Key: "created_at", Value: -1}}
+	findOptions := options.Find().SetSort(sort)
+	cursor, err := collection.Find(ctx, filter, findOptions)
 	if err != nil {
 		return nil, err
 	}

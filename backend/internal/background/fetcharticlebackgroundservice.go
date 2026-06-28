@@ -3,6 +3,7 @@ package background
 import (
 	"context"
 	"log/slog"
+	"time"
 
 	"github.com/vasugupta1/RSSFeed/backend/internal/repository/interfaces"
 	"github.com/vasugupta1/RSSFeed/backend/internal/repository/models"
@@ -44,7 +45,7 @@ func (fa *FetchArticleBackGroundService) FetchArticleAndCache(ctx context.Contex
 				slog.Error("Failed to crawl url in the background service", "error", err)
 				return
 			}
-			articleSummary := models.ArticleSummary{Url: crawlResponse.Url, Summary: crawlResponse.Response, Title: article.Title}
+			articleSummary := models.ArticleSummary{Url: crawlResponse.Url, Summary: crawlResponse.Response, Title: article.Title, CreatedAt: time.Now()}
 			if err := fa.respository.SaveArticle(ctx, articleSummary); err != nil {
 				slog.Error("Failed to save article in database", "error", err)
 			}
