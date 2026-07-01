@@ -6,8 +6,14 @@
 2. Navigate to rssfeed-aspire folder and run 'aspire restore && aspire run', this will run the front-end, bff, database etc
 
 ## TODO:
-1. When user click add feed, that url is saved in the database 
-2. When page first loads, the frontend calls the webapi to get the list of articles it must show, this means the webapi is going to be repsonsbile for getting the feed links, getting rss xml and returning back the required data
-3. Need some sort of streaming of data to happen from AI API -> WebAPI -> Frontend loading can take ages
-4. Cache results from the AI API
-5. Images URL must be extracted and returned as part of the response so frontend can display it  
+1. Create custom middleware for the go api, which verifires the request coming in such as header etc 
+2. When webapi first loads, it needs to get all feeds and extract all articles to update the list
+3. When an article is read it needs to call delete endpoint to delete the article from the database
+4. Maybe a TTL should be present but this is local mostly so doesn't really matter much
+5. Need to support both xml and atom format, this way I can use reddit 
+6. Need to fix package names in webapi, I need to understand what the current industry standard is for go and use, currently I feel like its a mess
+7. Inconsistent naming convention across the whole repo 
+8. If deduplicate feed is being added then it needs to stop that
+9. If article is already present in the database then it needs to stop creating that
+10. Maybe move the caching of articles from mongo to redis, I did it to save time in dev work 
+11. For reddit articles need to support comments also and update ai prompt so that it excludes what it thinks it might be an ai generated comment

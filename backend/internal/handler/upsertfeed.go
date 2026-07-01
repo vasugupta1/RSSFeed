@@ -5,6 +5,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/vasugupta1/RSSFeed/backend/internal/httputil"
 	"github.com/vasugupta1/RSSFeed/backend/internal/models"
@@ -80,5 +81,6 @@ func mapToFeed(rssXml *models.RssXml) (*repomodels.Feed, error) {
 		Description: rssXml.Channel.Description,
 		Link:        rssXml.Channel.Link,
 		Articles:    dbArticles,
+		CreatedAt:   time.Now(),
 	}, nil
 }
