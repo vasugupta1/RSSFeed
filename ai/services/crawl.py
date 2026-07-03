@@ -7,8 +7,7 @@ class Crawl:
     
     __slots__ = ("url", "crawler", "browser_config", "headers")
 
-    def __init__(self, url: str, crawler: AsyncWebCrawler):
-        self.url = url
+    def __init__(self, crawler: AsyncWebCrawler):
         self.crawler = crawler
         self.browser_config = BrowserConfig(
             headless=True,
@@ -33,10 +32,6 @@ class Crawl:
 
 
     async def crawl_config(self) -> CrawlerRunConfig:
-        # content_filter = PruningContentFilter(
-        #     threshold=0.45,          
-        #     min_word_threshold=30, 
-        # )
         md_generator = DefaultMarkdownGenerator()
         config = CrawlerRunConfig(
             excluded_tags=['nav', 'footer', 'header', 'aside', 'form'],
@@ -52,10 +47,10 @@ class Crawl:
         return config
     
 
-    async def fastCrawl(self) -> Tuple[bool, str]:
+    async def fastCrawl(self, url: str) -> Tuple[bool, str]:
         try:
             async with httpx.AsyncClient(timeout=5.0, follow_redirects=True) as client:
-                response = await client.get(self.url, headers=self.headers)
+                response = await client.get(url, headers=self.headers)
                 response.raise_for_status()
                 html_content = response.text
 
@@ -78,10 +73,10 @@ class Crawl:
             print(f"[FAST-PATH] Direct fetch failed ({e}), falling back to crawler framework...")
         return False, ""
             
-    async def slowCrawl(self) -> Tuple[bool, str]:
+    async def slowCrawl(self, url:str) -> Tuple[bool, str]:
         try:
             run_config = await self.crawl_config()
-            result = await self.crawler.arun(url=self.url, config=run_config)
+            result = await self.crawler.arun(url=url, config=run_config)
             if result.success and result.markdown and result.markdown.raw_markdown.strip():
                 return True, result.markdown.raw_markdown
         
@@ -89,12 +84,12 @@ class Crawl:
             print(f"[SLOW-PATH] Direct fetch failed ({e})")
         return False, ""
 
-    async def run(self) -> str:
-        success, result = await self.fastCrawl()
+    async def run(self, url: str) -> str:
+        success, result = await self.fastCrawl(url)
         if success:
             return result
         
-        slowCrawlSuccess, slowCrawlResult = await self.slowCrawl()
+        slowCrawlSuccess, slowCrawlResult = await self.slowCrawl(url)
         if slowCrawlSuccess:
             return slowCrawlResult
         raise Exception("Failed to crawl the url correctly")
