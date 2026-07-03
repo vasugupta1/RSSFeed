@@ -7,6 +7,7 @@ from contextlib import asynccontextmanager
 from crawl4ai import AsyncWebCrawler, BrowserConfig
 from services.crawl import Crawl
 from services.llm import LLMService
+from services.articleanalysis import RSSAnalyserService, ArticleAnalysis
 
 from services.crawl import Crawl
 from services.llm import LLMService
@@ -24,6 +25,7 @@ async def lifespan(app: FastAPI):
     await shared_crawler.start()
     app.state.crawler_service = Crawl(shared_crawler)
     app.state.llm_service = LLMService(url=CHAT_URI, model=CHAT_MODEL, config={})
+    app.state.llm = RSSAnalyserService(url=CHAT_URI, model=CHAT_MODEL, config = {})
     yield
     await shared_crawler.close()
 
@@ -37,7 +39,8 @@ def heartcheck():
 async def crawl(url: str):
     result = await app.state.crawler_service.run(url)
     llm_response = app.state.llm_service.call(f"Summarize the crawl result: {result}")
-    return {"Url": url, "Response": llm_response}
+    test = app.state.llm.analyze_text(result)
+    return {"Url": url, "Response": llm_response, "Test": test}
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000)) 
