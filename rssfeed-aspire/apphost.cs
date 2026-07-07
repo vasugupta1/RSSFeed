@@ -20,8 +20,19 @@ var mongo = builder.AddMongoDB("rssfeed")
 
 var mongodb = mongo.AddDatabase("rssfeedurl");
 
-var postgres = builder.AddPostgres("rssfeedpostgres");
+var postgres = builder.AddPostgres("rssfeedpostgres")
+    .WithDataVolume("rssfeedai-data")
+    .WithLifetime(ContainerLifetime.Persistent)
+    .WithPgAdmin();
+
 var postgresdb = postgres.AddDatabase("rssfeedontology");
+
+var dbMigrations = builder.AddContainer("rssfeed-db-migrations", "ghcr.io/amacneil/dbmate")
+    .WithBindMount("../migrations", "/db/migrations") 
+    .WithReference(postgresdb)  
+    .WithEnvironment("DATABASE_URL", $"{postgresdb.Resource.UriExpression}?sslmode=disable")          
+    .WithArgs("up")                                   
+    .WaitFor(postgresdb);
 
 //#####################AI#####################################
 var ollama = builder.AddOllama("ollama")
@@ -46,6 +57,7 @@ var ai = builder.AddUvicornApp(name: "rssfeedai", appDirectory: "../ai", app: "a
                     .WithReference(postgresdb)
                     .WaitFor(mongodb)
                     .WaitFor(chatmodel)
+                    .WaitFor(dbMigrations)
                     .WithHttpEndpoint(port: 8001);
 
 //#####################BFF#####################################
