@@ -1,19 +1,20 @@
 /**
- * Simplified utility for fetching article content directly from the backend API.
- * It assumes the API returns a JSON object matching the ReadResponse interface
- * and that the `Response` field contains ready‑to‑render HTML.
+ * Utility for fetching article content from the backend crawler API.
+ * The API returns a CrawlUrlResponse with structured summary and keywords arrays.
  */
 
-export interface ReadResponse {
-  Url: string;
-  Response: string;
+export interface CrawlUrlResponse {
+  url: string;
+  title: string;
+  summary: string[];
+  keywords: string[];
 }
 
 /**
  * Fetches article content for a given URL.
- * Returns the `Response` string from the API without any further processing.
+ * Returns the full CrawlUrlResponse from the API.
  */
-export async function fetchArticleContent(url: string): Promise<string> {
+export async function fetchArticleContent(url: string): Promise<CrawlUrlResponse> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout
 
@@ -34,46 +35,14 @@ export async function fetchArticleContent(url: string): Promise<string> {
       throw new Error(`API returned ${response.status} ${response.statusText}`);
     }
 
-    const data: ReadResponse = await response.json();
+    const data: CrawlUrlResponse = await response.json();
     console.log(`[Readability] API response received:`, data);
-    let content = data.Response;
-    if (!content || content.trim().length === 0) {
-      throw new Error('Empty response from API');
+
+    if (!data.summary || data.summary.length === 0) {
+      throw new Error('Empty summary from API');
     }
 
-    // 1️⃣ Prefer explicit "*" bullet markers.
-    const starBullets = content
-      .split('*')
-      .map(item => item.trim())
-      .filter(item => item.length > 0);
-    if (starBullets.length > 1) {
-      const html = `<ul>${starBullets.map(b => `<li>${b}</li>`).join('')}</ul>`;
-      return html;
-    }
-
-    // 2️⃣ Fallback: treat newline‑separated lines as bullets when there are multiple lines.
-    const lineBullets = content
-      .split(/\r?\n/) // split on any newline
-      .map(item => item.trim())
-      .filter(item => item.length > 0);
-    if (lineBullets.length > 1) {
-      const html = `<ul>${lineBullets.map(b => `<li>${b}</li>`).join('')}</ul>`;
-      return html;
-    }
-
-    // 3️⃣ Fallback: split on sentence endings if still multiple parts.
-    const sentenceBullets = content
-      .split(/\.\s+/)
-      .map(item => item.trim())
-      .filter(item => item.length > 0)
-      .map(item => item.endsWith('.') ? item : `${item}.`);
-    if (sentenceBullets.length > 1) {
-      const html = `<ul>${sentenceBullets.map(b => `<li>${b}</li>`).join('')}</ul>`;
-      return html;
-    }
-
-    // Single paragraph – return unchanged.
-    return content;
+    return data;
   } catch (error) {
     clearTimeout(timeoutId);
     console.error(`[Readability] fetchArticleContent error:`, error);

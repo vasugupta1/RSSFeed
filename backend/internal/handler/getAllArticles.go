@@ -24,7 +24,7 @@ func (h *GetAllArticlesHandler) GetAllArticles(w http.ResponseWriter, r *http.Re
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	response := make([]models.CrawlUrlResponse, len(articles))
+	response := make([]models.CrawlUrlResponse, 0, len(articles))
 	for _, article := range articles {
 		response = append(response, models.CrawlUrlResponse{
 			Url:      article.Url,

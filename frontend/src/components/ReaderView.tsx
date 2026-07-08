@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { FeedItem } from '../mockData';
 import { fetchArticleContent } from '../utils/readability';
+import type { CrawlUrlResponse } from '../utils/readability';
 import BulletList from '../components/BulletList';
 
 interface FlatArticle extends FeedItem {
@@ -25,7 +26,7 @@ export default function ReaderView({
   const [viewMode, setViewMode] = useState<'full' | 'summary'>('full');
   
   // Extraction states
-  const [fullContent, setFullContent] = useState<string | null>(null);
+  const [crawlData, setCrawlData] = useState<CrawlUrlResponse | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [articleByline, setArticleByline] = useState<string>('');
@@ -33,7 +34,7 @@ export default function ReaderView({
   // Automatically trigger the 4-step pipeline on article selection
   useEffect(() => {
     if (!activeArticle) {
-      setFullContent(null);
+      setCrawlData(null);
       setError(null);
       setArticleByline('');
       return;
@@ -42,16 +43,16 @@ export default function ReaderView({
     let isMounted = true;
     setIsLoading(true);
     setError(null);
-    setFullContent(null);
+    setCrawlData(null);
     setArticleByline('');
     setViewMode('full'); // Reset back to full reader mode by default
 
     const targetUrl = activeArticle.link;
 
     fetchArticleContent(targetUrl)
-      .then(htmlText => {
+      .then(data => {
         if (!isMounted) return;
-        setFullContent(htmlText);
+        setCrawlData(data);
       })
       .catch(err => {
         if (!isMounted) return;
@@ -208,19 +209,26 @@ export default function ReaderView({
                   <span className="font-medium">By {articleByline || activeArticle.author || 'Editorial Team'}</span>
                 </div>
 
-                {/* Clean, heuristic-scored formatted body text */}
+                {/* AI Summary bullet points */}
                 <div className="reader-body-custom">
-                  {fullContent && fullContent.trim().startsWith('<ul') ? (
-                    (() => {
-                      const parser = new DOMParser();
-                      const doc = parser.parseFromString(fullContent, 'text/html');
-                      const items = Array.from(doc.querySelectorAll('li')).map(li => li.textContent?.trim() || '');
-                      return <BulletList items={items} />;
-                    })()
-                  ) : (
-                    <div dangerouslySetInnerHTML={{ __html: fullContent || '' }} />
+                  {crawlData && crawlData.summary.length > 0 && (
+                    <BulletList items={crawlData.summary} />
                   )}
                 </div>
+
+                {/* Keywords tags */}
+                {crawlData && crawlData.keywords && crawlData.keywords.length > 0 && (
+                  <div className="mt-8 flex flex-wrap gap-2">
+                    {crawlData.keywords.map((keyword, idx) => (
+                      <span
+                        key={idx}
+                        className="inline-block px-3 py-1.5 bg-brand/10 text-brand text-xs font-semibold rounded-lg border border-brand/20"
+                      >
+                        {keyword}
+                      </span>
+                    ))}
+                  </div>
+                )}
 
                 <div className="mt-16 pt-8 border-t border-border-custom flex justify-start">
                   <a 
