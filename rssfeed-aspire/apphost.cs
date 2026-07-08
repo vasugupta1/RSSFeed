@@ -1,11 +1,11 @@
-﻿#:package Aspire.Hosting.Azure@13.4.3
-#:package Aspire.Hosting.JavaScript@13.4.3
-#:package Aspire.Hosting.MongoDB@13.4.3
-#:package Aspire.Hosting.PostgreSQL@13.4.3
-#:package Aspire.Hosting.Python@13.4.3
+﻿#:package Aspire.Hosting.Azure@13.4.6
+#:package Aspire.Hosting.JavaScript@13.4.6
+#:package Aspire.Hosting.MongoDB@13.4.6
+#:package Aspire.Hosting.PostgreSQL@13.4.6
+#:package Aspire.Hosting.Python@13.4.6
 #:package CommunityToolkit.Aspire.Hosting.Golang@13.3.0
 #:package CommunityToolkit.Aspire.Hosting.Ollama@13.3.0
-#:sdk Aspire.AppHost.Sdk@13.4.3
+#:sdk Aspire.AppHost.Sdk@13.4.6
 
 var builder = DistributedApplication.CreateBuilder(args);
 
@@ -19,6 +19,20 @@ var mongo = builder.AddMongoDB("rssfeed")
     .WithMongoExpress();
 
 var mongodb = mongo.AddDatabase("rssfeedurl");
+
+var postgres = builder.AddPostgres("rssfeedpostgres")
+    .WithDataVolume("rssfeedai-data")
+    .WithLifetime(ContainerLifetime.Persistent)
+    .WithPgAdmin();
+
+var postgresdb = postgres.AddDatabase("rssfeedontology");
+
+var dbMigrations = builder.AddContainer("rssfeed-db-migrations", "ghcr.io/amacneil/dbmate")
+    .WithBindMount("../migrations", "/db/migrations") 
+    .WithReference(postgresdb)  
+    .WithEnvironment("DATABASE_URL", $"{postgresdb.Resource.UriExpression}?sslmode=disable")          
+    .WithArgs("up")                                   
+    .WaitFor(postgresdb);
 
 //#####################AI#####################################
 var ollama = builder.AddOllama("ollama")
@@ -40,8 +54,10 @@ var ai = builder.AddUvicornApp(name: "rssfeedai", appDirectory: "../ai", app: "a
                     .WithReference(mongodb)
                     .WithReference(chatmodel)
                     .WithReference(ollama)
+                    .WithReference(postgresdb)
                     .WaitFor(mongodb)
                     .WaitFor(chatmodel)
+                    // .WaitFor(dbMigrations)
                     .WithHttpEndpoint(port: 8001);
 
 //#####################BFF#####################################

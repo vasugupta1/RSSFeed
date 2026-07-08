@@ -5,7 +5,8 @@ type CrawlerRequest struct {
 }
 
 type CrawlUrlResponse struct {
-	Url      string `json:"Url"`
-	Response string `json:"Response"`
-	Title    string `json:"Title"`
+	Url      string   `json:"url"`
+	Title    string   `json:"title"`
+	Summary  []string `json:"summary"`
+	Keywords []string `json:"keywords"`
 }

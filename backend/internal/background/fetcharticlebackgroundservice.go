@@ -45,7 +45,13 @@ func (fa *FetchArticleBackGroundService) FetchArticleAndCache(ctx context.Contex
 				slog.Error("Failed to crawl url in the background service", "error", err)
 				return
 			}
-			articleSummary := models.ArticleSummary{Url: crawlResponse.Url, Summary: crawlResponse.Response, Title: article.Title, CreatedAt: time.Now()}
+			articleSummary := models.ArticleSummary{
+				Url:       crawlResponse.Url,
+				Summary:   crawlResponse.Summary,
+				Title:     crawlResponse.Title,
+				Keywords:  crawlResponse.Keywords,
+				CreatedAt: time.Now(),
+			}
 			if err := fa.respository.SaveArticle(ctx, articleSummary); err != nil {
 				slog.Error("Failed to save article in database", "error", err)
 			}
