@@ -37,7 +37,9 @@ func (h *CrawlerHandler) HandleCrawl(w http.ResponseWriter, r *http.Request) {
 	if cachedModel != nil {
 		response := &models.CrawlUrlResponse{
 			Url:      cachedModel.Url,
-			Response: cachedModel.Summary,
+			Title:    cachedModel.Title,
+			Summary:  cachedModel.Summary,
+			Keywords: cachedModel.Keywords,
 		}
 		httputil.WriteJSON(w, http.StatusOK, response, nil)
 		return

@@ -28,7 +28,8 @@ func (h *GetAllArticlesHandler) GetAllArticles(w http.ResponseWriter, r *http.Re
 	for _, article := range articles {
 		response = append(response, models.CrawlUrlResponse{
 			Url:      article.Url,
-			Response: article.Summary,
+			Summary:  article.Summary,
+			Keywords: article.Keywords,
 			Title:    article.Title,
 		})
 	}

@@ -57,7 +57,7 @@ var ai = builder.AddUvicornApp(name: "rssfeedai", appDirectory: "../ai", app: "a
                     .WithReference(postgresdb)
                     .WaitFor(mongodb)
                     .WaitFor(chatmodel)
-                    .WaitFor(dbMigrations)
+                    // .WaitFor(dbMigrations)
                     .WithHttpEndpoint(port: 8001);
 
 //#####################BFF#####################################
