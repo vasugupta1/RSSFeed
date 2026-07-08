@@ -27,16 +27,19 @@ func (h *FeedHandler) UpsertFeedUrl(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		slog.Error("Failed to parse crawler request", "error", err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
 	rssXml, err := callRssFeedUrls(requestBody.URL)
 	if err != nil {
 		slog.Error("Failed to parse crawler request", "error", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
-	feed, err := mapToFeed(rssXml)
+	feed, err := mapToFeed(rssXml, requestBody.URL)
 	if err != nil {
 		slog.Error("Failed to parse crawler request", "error", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	h.Respository.SaveFeed(r.Context(), *feed)
 	for _, article := range feed.Articles {
@@ -68,7 +71,7 @@ func callRssFeedUrls(url string) (*models.RssXml, error) {
 	return &rss, nil
 }
 
-func mapToFeed(rssXml *models.RssXml) (*repomodels.Feed, error) {
+func mapToFeed(rssXml *models.RssXml, feed string) (*repomodels.Feed, error) {
 	dbArticles := make([]repomodels.Articles, 0, len(rssXml.Channel.Items))
 	for _, item := range rssXml.Channel.Items {
 		dbArticles = append(dbArticles, repomodels.Articles{
@@ -79,7 +82,7 @@ func mapToFeed(rssXml *models.RssXml) (*repomodels.Feed, error) {
 	return &repomodels.Feed{
 		Title:       rssXml.Channel.Title,
 		Description: rssXml.Channel.Description,
-		Link:        rssXml.Channel.Link,
+		Link:        feed,
 		Articles:    dbArticles,
 		CreatedAt:   time.Now(),
 	}, nil

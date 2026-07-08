@@ -53,6 +53,9 @@ func main() {
 	articleSaveBackGroundService := background.NewFetchArticleBackGroundService(articleChannel, crawlerService, respositoryService)
 	go articleSaveBackGroundService.FetchArticleAndCache(ctx)
 
+	fetchfeedArticleSaveBackGroundService := background.NewFetchFeedUrlArticlesBackGroudService(articleChannel, respositoryService)
+	go fetchfeedArticleSaveBackGroundService.FetchFeedUrlArticleAndCache(ctx)
+
 	// Initialize handlers
 	crawlerHandler := handler.NewCrawlerHandler(crawlerService, respositoryService)
 	feedHandler := handler.NewFeedHandler(respositoryService, articleChannel)
