@@ -9,6 +9,8 @@ export interface FeedItem {
   author?: string;
   content?: string;
   imageUrl?: string;
+  summary?: string[];
+  keywords?: string[];
 }
 
 export interface Feed {

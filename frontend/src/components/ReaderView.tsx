@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { FeedItem } from '../mockData';
+import type { FeedItem } from '../types';
 import { fetchArticleContent } from '../utils/readability';
 import type { CrawlUrlResponse } from '../utils/readability';
 import BulletList from '../components/BulletList';
@@ -37,6 +37,22 @@ export default function ReaderView({
       setCrawlData(null);
       setError(null);
       setArticleByline('');
+      return;
+    }
+
+    // If the article already has pre-loaded summary/keywords from /api/articles,
+    // use them directly instead of calling the crawler API
+    if (activeArticle.summary && activeArticle.summary.length > 0) {
+      setCrawlData({
+        url: activeArticle.link,
+        title: activeArticle.title,
+        summary: activeArticle.summary,
+        keywords: activeArticle.keywords || [],
+      });
+      setIsLoading(false);
+      setError(null);
+      setArticleByline('');
+      setViewMode('full');
       return;
     }
 

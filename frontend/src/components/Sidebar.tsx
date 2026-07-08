@@ -1,4 +1,4 @@
-import type { Feed } from '../mockData';
+import type { Feed } from '../types';
 
 interface SidebarProps {
   feeds: Feed[];

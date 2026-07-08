@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import type { Feed, FeedItem } from './mockData';
+import type { Feed, FeedItem } from './types';
 import { parseXml } from './utils/feedParser';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';

@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import type { Feed, FeedItem } from './mockData';
+import type { Feed, FeedItem } from './types';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import ArticleList from './components/ArticleList';
@@ -33,15 +33,19 @@ function RssFeedWebApp() {
           link: '',
           description: 'Articles from your subscribed RSS feeds',
           items: data
-            .filter((item: any) => item.Url)
+            .filter((item: any) => item.url)
             .map((item: any, idx: number) => ({
               id: `backend-${idx}`,
-              title: item.Title || item.Url,
-              link: item.Url,
-              description: item.Response || '',
+              title: item.title || item.url,
+              link: item.url,
+              description: Array.isArray(item.summary) && item.summary.length > 0
+                ? item.summary[0]
+                : '',
               pubDate: new Date().toUTCString(),
               read: false,
               starred: false,
+              summary: Array.isArray(item.summary) ? item.summary : [],
+              keywords: Array.isArray(item.keywords) ? item.keywords : [],
             })),
         };
         // Replace any existing backend feed, keep the rest

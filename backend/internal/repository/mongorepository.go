@@ -89,9 +89,16 @@ func (f *MongoRepository) GetAllFeed(ctx context.Context) ([]models.Feed, error)
 	return feeds, nil
 }
 
+/* Only save article if it already doesn't exist in the database */
 func (f *MongoRepository) SaveArticle(ctx context.Context, articleSummary models.ArticleSummary) error {
 	collection := f.Db.Collection("feedarticle")
-	if _, err := collection.InsertOne(ctx, articleSummary); err != nil {
+
+	filter := bson.M{"url": articleSummary.Url}
+	update := bson.M{"$setOnInsert": articleSummary}
+	opts := options.UpdateOne().SetUpsert(true)
+
+	_, err := collection.UpdateOne(ctx, filter, update, opts)
+	if err != nil {
 		slog.Error("Failed to save feed in the database", "error", err, "article summary", articleSummary)
 		return err
 	}

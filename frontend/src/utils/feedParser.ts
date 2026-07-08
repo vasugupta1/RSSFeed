@@ -1,4 +1,4 @@
-import type { Feed, FeedItem } from '../mockData';
+import type { Feed, FeedItem } from '../types';
 
 export const stripHtml = (htmlText: string): string => {
   if (!htmlText) return "";

@@ -1,4 +1,4 @@
-import type { Feed, FeedItem } from '../mockData';
+import type { Feed, FeedItem } from '../types';
 
 interface FlatArticle extends FeedItem {
   feedTitle: string;
