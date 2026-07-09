@@ -48,16 +48,17 @@ var ollama = builder.AddOllama("ollama")
                     .WithContainerRuntimeArgs("--device", "/dev/kfd", "--device", "/dev/dri");
         
 var chatmodel = ollama.AddModel("chat", "llama3.2:latest");
+var ontologymodel = ollama.AddModel("onotology", "deepseek-r1:7b");
 
 
 var ai = builder.AddUvicornApp(name: "rssfeedai", appDirectory: "../ai", app: "app:app")
                     .WithReference(mongodb)
                     .WithReference(chatmodel)
                     .WithReference(ollama)
-                    .WithReference(postgresdb)
+                    .WithReference(ontologymodel)
                     .WaitFor(mongodb)
                     .WaitFor(chatmodel)
-                    // .WaitFor(dbMigrations)
+                    .WaitFor(ontologymodel)
                     .WithHttpEndpoint(port: 8001);
 
 //#####################BFF#####################################

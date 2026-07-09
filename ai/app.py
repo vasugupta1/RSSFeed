@@ -8,9 +8,12 @@ from crawl4ai import AsyncWebCrawler, BrowserConfig
 from services.crawl import Crawl
 from services.articleanalysis import RSSAnalyserService, ArticleAnalysis
 from services.crawl import Crawl
+from services.articleontology import ArticleOntologyService
 
 CHAT_URI = str(os.getenv("CHAT_URI")) 
 CHAT_MODEL = str(os.getenv("CHAT_MODEL"))
+ONTOLOGY_URI = str(os.getenv("ONOTOLOGY_URI"))
+ONTOLOGY_MODEL = str(os.getenv("ONOTOLOGY_MODEL"))
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -22,6 +25,7 @@ async def lifespan(app: FastAPI):
     await shared_crawler.start()
     app.state.crawler_service = Crawl(shared_crawler)
     app.state.llm = RSSAnalyserService(url=CHAT_URI, model=CHAT_MODEL, config = {})
+    app.state.onotology = ArticleOntologyService(url=ONTOLOGY_URI, model=ONTOLOGY_MODEL, config = {})
     yield
     await shared_crawler.close()
 
@@ -35,8 +39,15 @@ def heartcheck():
 async def crawl(url: str):
     result = await app.state.crawler_service.run(url)
     llm :RSSAnalyserService = app.state.llm
+    onotology: ArticleOntologyService = app.state.onotology
     llmResponse = llm.analyze_text(result)
-    return {"url": url, "title": llmResponse.title, "summary": llmResponse.summary, "keywords": llmResponse.keywords}
+    onotlogyResponse = onotology.extract_ontology(result)
+    print(onotlogyResponse)
+    return {"url": url, 
+            "title": llmResponse.title, 
+            "summary": llmResponse.summary, 
+            "keywords": llmResponse.keywords,
+            "country": llmResponse.country}
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000)) 

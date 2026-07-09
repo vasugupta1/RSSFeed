@@ -16,6 +16,8 @@ class ArticleAnalysis(BaseModel):
     keywords: List[str] = Field(
         description="Main themes, topics, or entities extracted from the HTML content."
     )
+    country : str = Field( description= "The country of origin where this html content is from.")
+
 
 class RSSAnalyserService:
 
@@ -28,7 +30,7 @@ class RSSAnalyserService:
         )
 
         self.prompt = ChatPromptTemplate.from_messages([
-            ("system", "You are an expert AI analyzer. Analyze the provided HTML text and extract the article's original title, a concise bullet-point summary, and relevant keywords. Fill every field strictly according to the schema."),
+            ("system", "You are an expert AI analyzer. Analyze the provided HTML text and extract the article's original title, a concise bullet-point summary, country of origin and relevant keywords. Fill every field strictly according to the schema."),
             ("human", "Analyze this article content: {message}")
         ])
 
