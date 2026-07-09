@@ -1,6 +1,7 @@
 # RSSFeed AI Service
 
 This is a Python-based FastAPI microservice that provides artificial intelligence and high-performance scraping capabilities to the RSSFeed aggregator application.
+This python api is also responsbile for building a ontology layer that can be used in the frontend to display how news articles and their topics are connected together
 
 ## Key Features
 

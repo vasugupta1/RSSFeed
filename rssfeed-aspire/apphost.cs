@@ -22,17 +22,18 @@ var mongodb = mongo.AddDatabase("rssfeedurl");
 
 var postgres = builder.AddPostgres("rssfeedpostgres")
     .WithDataVolume("rssfeedai-data")
+    .WithImage("apache/age", "latest")
     .WithLifetime(ContainerLifetime.Persistent)
     .WithPgAdmin();
 
 var postgresdb = postgres.AddDatabase("rssfeedontology");
 
-var dbMigrations = builder.AddContainer("rssfeed-db-migrations", "ghcr.io/amacneil/dbmate")
-    .WithBindMount("../migrations", "/db/migrations") 
-    .WithReference(postgresdb)  
-    .WithEnvironment("DATABASE_URL", $"{postgresdb.Resource.UriExpression}?sslmode=disable")          
-    .WithArgs("up")                                   
-    .WaitFor(postgresdb);
+// var dbMigrations = builder.AddContainer("rssfeed-db-migrations", "ghcr.io/amacneil/dbmate")
+//     .WithBindMount("../migrations", "/db/migrations") 
+//     .WithReference(postgresdb)  
+//     .WithEnvironment("DATABASE_URL", $"{postgresdb.Resource.UriExpression}?sslmode=disable")          
+//     .WithArgs("down")                                   
+//     .WaitFor(postgresdb);
 
 //#####################AI#####################################
 var ollama = builder.AddOllama("ollama")
