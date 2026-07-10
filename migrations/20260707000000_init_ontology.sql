@@ -1,5 +1,14 @@
 -- migrate:up
 
+-- 1. Initialize Apache AGE for the new database
+CREATE EXTENSION IF NOT EXISTS age CASCADE;
+LOAD 'age';
+
+-- Fix: Use the explicit database name instead of the current_database() function
+ALTER DATABASE rssfeedontology SET search_path = ag_catalog, "$user", public;
+SET search_path = ag_catalog, "$user", public;
+
+-- 2. Create standard relational tables
 CREATE TABLE entities (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) UNIQUE NOT NULL,
@@ -17,6 +26,7 @@ CREATE TABLE relationships (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT unique_rel UNIQUE (source_name, target_name, relation_type)
 );
+
 
 -- migrate:down
 

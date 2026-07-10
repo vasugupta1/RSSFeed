@@ -1,5 +1,5 @@
 import os
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, status
 from pydantic import BaseModel
 import uvicorn
 
@@ -9,11 +9,13 @@ from services.crawl import Crawl
 from services.articleanalysis import RSSAnalyserService, ArticleAnalysis
 from services.crawl import Crawl
 from services.articleontology import ArticleOntologyService
+from services.graphservice import GraphService
 
 CHAT_URI = str(os.getenv("CHAT_URI")) 
 CHAT_MODEL = str(os.getenv("CHAT_MODEL"))
 ONTOLOGY_URI = str(os.getenv("ONOTOLOGY_URI"))
 ONTOLOGY_MODEL = str(os.getenv("ONOTOLOGY_MODEL"))
+DATABASE_URI = str(os.getenv("RSSFEEDONTOLOGY_URI"))
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -26,6 +28,8 @@ async def lifespan(app: FastAPI):
     app.state.crawler_service = Crawl(shared_crawler)
     app.state.llm = RSSAnalyserService(url=CHAT_URI, model=CHAT_MODEL, config = {})
     app.state.onotology = ArticleOntologyService(url=ONTOLOGY_URI, model=ONTOLOGY_MODEL, config = {})
+    app.state.graph_service = GraphService(uri = DATABASE_URI)
+    
     yield
     await shared_crawler.close()
 
@@ -33,7 +37,18 @@ app = FastAPI(lifespan=lifespan)
 
 @app.get("/healthcheck")
 def heartcheck():
-    return {"status": "healthy"}
+    graph_service: GraphService = app.state.graph_service
+    service_result =  {}
+    service_result["graph_service"] =  graph_service.can_connect()
+
+    if False in service_result.values():
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"status": "unhealthy", "checks": service_result}
+        )
+
+    return {"status": "healthy", "checks": service_result} 
+
 
 @app.get("/api/crawl")
 async def crawl(url: str):
