@@ -55,9 +55,12 @@ async def crawl(url: str):
     result = await app.state.crawler_service.run(url)
     llm :RSSAnalyserService = app.state.llm
     onotology: ArticleOntologyService = app.state.onotology
-    llmResponse = llm.analyze_text(result)
+    llmResponse: ArticleAnalysis = llm.analyze_text(result)
     onotlogyResponse = onotology.extract_ontology(result)
+    graph_service: GraphService = app.state.graph_service
+    sucessfull = graph_service.save_ontology(onotlogyResponse, llmResponse.title)
     print(onotlogyResponse)
+  
     return {"url": url, 
             "title": llmResponse.title, 
             "summary": llmResponse.summary, 
