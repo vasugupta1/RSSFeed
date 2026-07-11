@@ -10,12 +10,16 @@ from services.articleanalysis import RSSAnalyserService, ArticleAnalysis
 from services.crawl import Crawl
 from services.articleontology import ArticleOntologyService
 from services.graphservice import GraphService
+from services.messagingservice import VectorEmbeddingMessanger
+
+import pika
 
 CHAT_URI = str(os.getenv("CHAT_URI")) 
 CHAT_MODEL = str(os.getenv("CHAT_MODEL"))
 ONTOLOGY_URI = str(os.getenv("ONOTOLOGY_URI"))
 ONTOLOGY_MODEL = str(os.getenv("ONOTOLOGY_MODEL"))
 DATABASE_URI = str(os.getenv("RSSFEEDONTOLOGY_URI"))
+MESSAGING_URI = str(os.getenv("MESSAGING_URI"))
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -29,7 +33,18 @@ async def lifespan(app: FastAPI):
     app.state.llm = RSSAnalyserService(url=CHAT_URI, model=CHAT_MODEL, config = {})
     app.state.onotology = ArticleOntologyService(url=ONTOLOGY_URI, model=ONTOLOGY_MODEL, config = {})
     app.state.graph_service = GraphService(uri = DATABASE_URI)
+
+
+    params = pika.URLParameters(MESSAGING_URI)
+    connection = pika.BlockingConnection(params)
+    channel = connection.channel() 
+    channel.queue_declare(queue='rss_tasks', durable=True)
+    print(" Queue 'rss_tasks' is guaranteed to exist now!")
+
+    messaging_service = VectorEmbeddingMessanger(channel= channel)
+    app.state.messaging_service = messaging_service
     
+
     yield
     await shared_crawler.close()
 

@@ -3,12 +3,20 @@
 #:package Aspire.Hosting.MongoDB@13.4.6
 #:package Aspire.Hosting.PostgreSQL@13.4.6
 #:package Aspire.Hosting.Python@13.4.6
+#:package Aspire.Hosting.RabbitMQ@13.4.6
 #:package CommunityToolkit.Aspire.Hosting.Golang@13.3.0
 #:package CommunityToolkit.Aspire.Hosting.Ollama@13.3.0
 #:sdk Aspire.AppHost.Sdk@13.4.6
 
 var builder = DistributedApplication.CreateBuilder(args);
 
+
+//###################Messasging################################
+var messagingQueue = builder
+                        .AddRabbitMQ("messaging")
+                        .WithDataVolume("rssfeed-queue-data")
+                        .WithLifetime(ContainerLifetime.Persistent)
+                        .WithManagementPlugin();
 //#####################Database################################
 
 var mongo = builder.AddMongoDB("rssfeed")
@@ -73,9 +81,11 @@ var ai = builder.AddUvicornApp(name: "rssfeedai", appDirectory: "../ai", app: "a
                     .WithReference(ontologymodel)
                     .WithReference(graphDb)
                     .WithReference(vectorDb)
+                    .WithReference(messagingQueue)
                     .WaitFor(mongodb)
                     .WaitFor(chatmodel)
                     .WaitFor(ontologymodel)
+                    .WaitFor(messagingQueue)
                     .WaitForCompletion(graphDbMigration)
                     .WaitForCompletion(vectorDbMigration)
                     .WithHttpEndpoint(port: 8001);
