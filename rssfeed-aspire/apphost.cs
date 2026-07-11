@@ -31,7 +31,7 @@ var postgresdb = postgres.AddDatabase("rssfeedontology");
 var dbMigrations = builder.AddContainer("rssfeed-db-migrations", "ghcr.io/amacneil/dbmate")
     .WithBindMount("../migrations", "/db/migrations") 
     .WithReference(postgresdb)  
-   .WithEnvironment("DATABASE_URL", $"{postgresdb.Resource.UriExpression}?sslmode=disable&search_path=public")       
+    .WithEnvironment("DATABASE_URL", $"{postgresdb.Resource.UriExpression}?sslmode=disable&search_path=public")       
     .WithArgs("up")                                   
     .WaitFor(postgresdb);
 
@@ -66,7 +66,8 @@ var ai = builder.AddUvicornApp(name: "rssfeedai", appDirectory: "../ai", app: "a
 
 //#####################BFF#####################################
 
-var rssfeedwebapp = builder.AddGolangApp("rssfeedwebapp", "../backend/cmd/server")
+var rssfeedwebapp = builder
+                    .AddGolangApp("rssfeedwebapp", "../backend/cmd/server")
                     .WithHttpEndpoint(env: "PORT", port: 8002)
                     .WithHttpHealthCheck("/api/healthcheck")
                     .WithReference(mongodb)
