@@ -20,20 +20,35 @@ var mongo = builder.AddMongoDB("rssfeed")
 
 var mongodb = mongo.AddDatabase("rssfeedurl");
 
-var postgres = builder.AddPostgres("rssfeedpostgres")
+var apacheAgePostgres = builder.AddPostgres("rssfeedpostgres")
     .WithDataVolume("rssfeedai-data")
     .WithImage("apache/age", "latest")
     .WithLifetime(ContainerLifetime.Persistent)
     .WithPgAdmin();
 
-var postgresdb = postgres.AddDatabase("rssfeedontology");
+var graphDb = apacheAgePostgres.AddDatabase("rssfeedontology");
 
-var dbMigrations = builder.AddContainer("rssfeed-db-migrations", "ghcr.io/amacneil/dbmate")
-    .WithBindMount("../migrations", "/db/migrations") 
-    .WithReference(postgresdb)  
-    .WithEnvironment("DATABASE_URL", $"{postgresdb.Resource.UriExpression}?sslmode=disable&search_path=public")       
+var graphDbMigration = builder.AddContainer("rssfeed-db-migrations", "ghcr.io/amacneil/dbmate")
+    .WithBindMount("../migrations/graph", "/db/migrations") 
+    .WithReference(graphDb)  
+    .WithEnvironment("DATABASE_URL", $"{graphDb.Resource.UriExpression}?sslmode=disable&search_path=public")       
     .WithArgs("up")                                   
-    .WaitFor(postgresdb);
+    .WaitFor(graphDb);
+
+var vectorPostgres = builder.AddPostgres("rssfeed-vectordb")
+    .WithDataVolume("rssfeed-vector-data")
+    .WithImage("pgvector/pgvector", "pg15") 
+    .WithLifetime(ContainerLifetime.Persistent)
+    .WithPgAdmin();
+
+var vectorDb = vectorPostgres.AddDatabase("ressfeedvectors");
+
+var vectorDbMigration = builder.AddContainer("rssfeed-vector-db-migrations", "ghcr.io/amacneil/dbmate")
+    .WithBindMount("../migrations/vector", "/db/migrations") 
+    .WithReference(vectorDb)  
+    .WithEnvironment("DATABASE_URL", $"{vectorDb.Resource.UriExpression}?sslmode=disable&search_path=public")       
+    .WithArgs("up")                                   
+    .WaitFor(vectorDb);
 
 //#####################AI#####################################
 var ollama = builder.AddOllama("ollama")
@@ -51,17 +66,18 @@ var ollama = builder.AddOllama("ollama")
 var chatmodel = ollama.AddModel("chat", "llama3.2:latest");
 var ontologymodel = ollama.AddModel("onotology", "deepseek-r1:7b");
 
-
 var ai = builder.AddUvicornApp(name: "rssfeedai", appDirectory: "../ai", app: "app:app")
                     .WithReference(mongodb)
                     .WithReference(chatmodel)
                     .WithReference(ollama)
                     .WithReference(ontologymodel)
-                    .WithReference(postgresdb)
+                    .WithReference(graphDb)
+                    .WithReference(vectorDb)
                     .WaitFor(mongodb)
                     .WaitFor(chatmodel)
                     .WaitFor(ontologymodel)
-                    .WaitForCompletion(dbMigrations)
+                    .WaitForCompletion(graphDbMigration)
+                    .WaitForCompletion(vectorDbMigration)
                     .WithHttpEndpoint(port: 8001);
 
 //#####################BFF#####################################
