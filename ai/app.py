@@ -3,6 +3,7 @@ from fastapi import FastAPI, HTTPException, status
 import uvicorn
 from contextlib import asynccontextmanager
 from crawl4ai import AsyncWebCrawler, BrowserConfig
+import threading
 
 from services.crawl import Crawl
 from services.articleanalysis import RSSAnalyserService, ArticleAnalysis
@@ -10,6 +11,7 @@ from services.crawl import Crawl
 from services.articleontology import ArticleOntologyService
 from services.graphservice import GraphService
 from services.messagingservice import VectorEmbeddingMessanger
+from background_services.crawlresultprocessing import CrawlResultProcessingBackgroundService
 from config.appconfiguration import AppConfiguration
 
 config : AppConfiguration = AppConfiguration() # type: ignore[reportCallIssue]
@@ -24,11 +26,16 @@ async def lifespan(app: FastAPI):
     await shared_crawler.start()
     app.state.crawler_service = Crawl(shared_crawler)
     app.state.llm = RSSAnalyserService(url=config.LLM_URI, model=config.LLM_MODEL, config = {})
-    app.state.onotology = ArticleOntologyService(url=config.LLM_URI, model=config.LLM_MODEL, config = {})
-    app.state.graph_service = GraphService(uri = config.DATABASE_URI)
+    onotlogy : ArticleOntologyService = ArticleOntologyService(url=config.LLM_URI, model=config.LLM_MODEL, config = {})
+    app.state.onotology = onotlogy
+    graph_service = GraphService(uri = config.DATABASE_URI)
+    app.state.graph_service = graph_service
     messaging_service : VectorEmbeddingMessanger = VectorEmbeddingMessanger(uri = config.MESSAGING_URI)
     app.state.messaging_service = messaging_service
-    
+
+    consumer_thread = threading.Thread(target=CrawlResultProcessingBackgroundService(messaging_service, onotlogy, graph_service).run_consumer, daemon=True)
+    consumer_thread.start()
+
     yield
     await shared_crawler.close()
 
@@ -39,8 +46,8 @@ def heartcheck():
     graph_service: GraphService = app.state.graph_service
     messaging_service : VectorEmbeddingMessanger = app.state.messaging_service
     service_result =  {}
-    service_result["graph_database"] =  graph_service.can_connect()
-    service_result["vector_embedding_queue"] = messaging_service.can_connect()
+    service_result["graph_database"] = "healthy" if graph_service.can_connect() else "unhealthy"
+    service_result["vector_embedding_queue"] = "healthy" if  messaging_service.can_connect() else "unhealthy"
 
     if False in service_result.values():
         raise HTTPException(
@@ -60,12 +67,6 @@ async def crawl(url: str):
     messanger: VectorEmbeddingMessanger = app.state.messaging_service
     messanger.publish(crawl_result)
     
-    # onotology: ArticleOntologyService = app.state.onotology
-    # onotlogyResponse = onotology.extract_ontology(result)
-    # graph_service: GraphService = app.state.graph_service
-    # sucessfull = graph_service.save_ontology(onotlogyResponse, llmResponse.title)
-    # print(onotlogyResponse)
-  
     return {"url": url, 
             "title": llmResponse.title, 
             "summary": llmResponse.summary, 
