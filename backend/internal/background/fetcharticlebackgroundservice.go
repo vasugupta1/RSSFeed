@@ -20,12 +20,12 @@ type FetchArticleBackGroundService struct {
 	rateLimiter    *concurrency.RateLimiter[struct{}]
 }
 
-func NewFetchArticleBackGroundService(articlesChan <-chan repomodels.Articles, crawlerService service.CrawlerService, respository interfaces.FeedRepository) *FetchArticleBackGroundService {
+func NewFetchArticleBackGroundService(articlesChan <-chan repomodels.Articles, crawlerService service.CrawlerService, respository interfaces.FeedRepository, rateLimit int) *FetchArticleBackGroundService {
 	return &FetchArticleBackGroundService{
 		articles:       articlesChan,
 		crawlerService: crawlerService,
 		respository:    respository,
-		rateLimiter:    concurrency.NewRateLimiter[struct{}](5),
+		rateLimiter:    concurrency.NewRateLimiter[struct{}](rateLimit),
 	}
 }
 

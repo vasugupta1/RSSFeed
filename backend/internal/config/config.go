@@ -8,6 +8,7 @@ type APIConfiguration struct {
 	CosmosConnectionString string
 	DatabaseName           string
 	CollectionNames        []string
+	ApiRateLimitValue      int
 }
 
 func Load() APIConfiguration {
@@ -17,6 +18,7 @@ func Load() APIConfiguration {
 		CosmosConnectionString: GetEnv("ConnectionStrings__rssfeedurl", ""),
 		DatabaseName:           "rssfeedurl",
 		CollectionNames:        []string{"feedurl", "feedarticle"},
+		ApiRateLimitValue:      5,
 	}
 }
 

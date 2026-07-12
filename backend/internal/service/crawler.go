@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/vasugupta1/RSSFeed/backend/internal/client"
+	"github.com/vasugupta1/RSSFeed/backend/internal/concurrency"
 	"github.com/vasugupta1/RSSFeed/backend/internal/models"
 )
 
@@ -13,13 +14,13 @@ type CrawlerService interface {
 
 type crawlerService struct {
 	crawlerClient *client.CrawlerApiClient
-	polly         *Polly[*models.CrawlUrlResponse]
+	polly         *concurrency.RateLimiter[*models.CrawlUrlResponse]
 }
 
-func NewCrawlerService(cc *client.CrawlerApiClient, p *Polly[*models.CrawlUrlResponse]) CrawlerService {
+func NewCrawlerService(cc *client.CrawlerApiClient, rateLimiter int) CrawlerService {
 	return &crawlerService{
 		crawlerClient: cc,
-		polly:         p,
+		polly:         concurrency.NewRateLimiter[*models.CrawlUrlResponse](rateLimiter),
 	}
 }
 

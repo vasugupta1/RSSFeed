@@ -10,7 +10,6 @@ import (
 	"github.com/vasugupta1/RSSFeed/backend/internal/client"
 	"github.com/vasugupta1/RSSFeed/backend/internal/config"
 	"github.com/vasugupta1/RSSFeed/backend/internal/handler"
-	crawlerModels "github.com/vasugupta1/RSSFeed/backend/internal/models"
 	"github.com/vasugupta1/RSSFeed/backend/internal/repository"
 	"github.com/vasugupta1/RSSFeed/backend/internal/repository/models"
 	"github.com/vasugupta1/RSSFeed/backend/internal/server"
@@ -43,14 +42,13 @@ func main() {
 	crawlerClient := client.NewCrawlerClient(cfg.CrawlerApiUrl)
 
 	// Initialize services
-	pollyLimter := service.NewPolly[*crawlerModels.CrawlUrlResponse](5)
-	crawlerService := service.NewCrawlerService(crawlerClient, pollyLimter)
+	crawlerService := service.NewCrawlerService(crawlerClient, cfg.ApiRateLimitValue)
 
 	// Initialize Background service
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	articleChannel := make(chan models.Articles, 100)
-	articleSaveBackGroundService := background.NewFetchArticleBackGroundService(articleChannel, crawlerService, respositoryService)
+	articleSaveBackGroundService := background.NewFetchArticleBackGroundService(articleChannel, crawlerService, respositoryService, cfg.ApiRateLimitValue)
 	go articleSaveBackGroundService.FetchArticleAndCache(ctx)
 
 	fetchfeedArticleSaveBackGroundService := background.NewFetchFeedUrlArticlesBackGroudService(articleChannel, respositoryService)
