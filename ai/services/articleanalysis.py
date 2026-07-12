@@ -18,6 +18,15 @@ class ArticleAnalysis(BaseModel):
     )
     country : str = Field( description= "The country of origin where this html content is from.")
 
+    article_overview: str = Field(
+        description=(
+            "A well-written summary of the article in two or three coherent paragraphs. "
+            "Explain the main topic, key events, important context, and conclusions. "
+            "Write in a neutral, journalistic style without introducing new information "
+            "or personal opinions. Keep it between 150 and 300 words."
+            "make sure you keep all of the key points concepts ideas of the article"
+        )
+    )
 
 class RSSAnalyserService:
 

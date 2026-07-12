@@ -71,7 +71,7 @@ var ollama = builder.AddOllama("ollama")
                     .WithEnvironment("OLLAMA_CONTEXT_LENGTH", "16384")
                     .WithContainerRuntimeArgs("--device", "/dev/kfd", "--device", "/dev/dri");
         
-var llm = ollama.AddModel("llm", "deepseek-r1:7b");
+var llm = ollama.AddModel("llm", "llama3.2:latest");
 
 var ai = builder.AddUvicornApp(name: "rssfeedai", appDirectory: "../ai", app: "app:app")
                     .WithReference(mongodb)

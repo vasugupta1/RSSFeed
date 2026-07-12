@@ -63,15 +63,15 @@ async def crawl(url: str):
     crawl_servie : Crawl = app.state.crawler_service
     crawl_result : str = await crawl_servie.run(url)
     llm :RSSAnalyserService = app.state.llm
-    llmResponse: ArticleAnalysis = llm.analyze_text(crawl_result)
+    article_analysis: ArticleAnalysis = llm.analyze_text(crawl_result)
     messanger: VectorEmbeddingMessanger = app.state.messaging_service
-    messanger.publish(crawl_result)
+    messanger.publish(article_analysis.model_dump())
     
     return {"url": url, 
-            "title": llmResponse.title, 
-            "summary": llmResponse.summary, 
-            "keywords": llmResponse.keywords,
-            "country": llmResponse.country}
+            "title": article_analysis.title, 
+            "summary": article_analysis.summary, 
+            "keywords": article_analysis.keywords,
+            "country": article_analysis.country}
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000)) 
