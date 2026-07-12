@@ -71,20 +71,18 @@ var ollama = builder.AddOllama("ollama")
                     .WithEnvironment("OLLAMA_CONTEXT_LENGTH", "16384")
                     .WithContainerRuntimeArgs("--device", "/dev/kfd", "--device", "/dev/dri");
         
-var chatmodel = ollama.AddModel("chat", "llama3.2:latest");
-var ontologymodel = ollama.AddModel("onotology", "deepseek-r1:7b");
+var llm = ollama.AddModel("llm", "deepseek-r1:7b");
 
 var ai = builder.AddUvicornApp(name: "rssfeedai", appDirectory: "../ai", app: "app:app")
                     .WithReference(mongodb)
-                    .WithReference(chatmodel)
+                    .WithReference(llm)
                     .WithReference(ollama)
-                    .WithReference(ontologymodel)
+                    .WithReference(llm)
                     .WithReference(graphDb)
                     .WithReference(vectorDb)
                     .WithReference(messagingQueue)
                     .WaitFor(mongodb)
-                    .WaitFor(chatmodel)
-                    .WaitFor(ontologymodel)
+                    .WaitFor(llm)
                     .WaitFor(messagingQueue)
                     .WaitForCompletion(graphDbMigration)
                     .WaitForCompletion(vectorDbMigration)

@@ -24,8 +24,8 @@ async def lifespan(app: FastAPI):
     shared_crawler : AsyncWebCrawler = AsyncWebCrawler(config=browser_config)
     await shared_crawler.start()
     app.state.crawler_service = Crawl(shared_crawler)
-    app.state.llm = RSSAnalyserService(url=config.CHAT_URI, model=config.CHAT_MODEL, config = {})
-    app.state.onotology = ArticleOntologyService(url=config.ONTOLOGY_URI, model=config.ONTOLOGY_MODEL, config = {})
+    app.state.llm = RSSAnalyserService(url=config.LLM_URI, model=config.LLM_MODEL, config = {})
+    app.state.onotology = ArticleOntologyService(url=config.LLM_URI, model=config.LLM_MODEL, config = {})
     app.state.graph_service = GraphService(uri = config.DATABASE_URI)
 
 
