@@ -1,7 +1,7 @@
 import os
 from fastapi import FastAPI, HTTPException, status
-from pydantic import BaseModel
 import uvicorn
+import pika
 
 from contextlib import asynccontextmanager
 from crawl4ai import AsyncWebCrawler, BrowserConfig
@@ -11,15 +11,9 @@ from services.crawl import Crawl
 from services.articleontology import ArticleOntologyService
 from services.graphservice import GraphService
 from services.messagingservice import VectorEmbeddingMessanger
+from config.appconfiguration import AppConfiguration
 
-import pika
-
-CHAT_URI = str(os.getenv("CHAT_URI")) 
-CHAT_MODEL = str(os.getenv("CHAT_MODEL"))
-ONTOLOGY_URI = str(os.getenv("ONOTOLOGY_URI"))
-ONTOLOGY_MODEL = str(os.getenv("ONOTOLOGY_MODEL"))
-DATABASE_URI = str(os.getenv("RSSFEEDONTOLOGY_URI"))
-MESSAGING_URI = str(os.getenv("MESSAGING_URI"))
+config : AppConfiguration = AppConfiguration() # type: ignore[reportCallIssue]
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -30,12 +24,12 @@ async def lifespan(app: FastAPI):
     shared_crawler : AsyncWebCrawler = AsyncWebCrawler(config=browser_config)
     await shared_crawler.start()
     app.state.crawler_service = Crawl(shared_crawler)
-    app.state.llm = RSSAnalyserService(url=CHAT_URI, model=CHAT_MODEL, config = {})
-    app.state.onotology = ArticleOntologyService(url=ONTOLOGY_URI, model=ONTOLOGY_MODEL, config = {})
-    app.state.graph_service = GraphService(uri = DATABASE_URI)
+    app.state.llm = RSSAnalyserService(url=config.CHAT_URI, model=config.CHAT_MODEL, config = {})
+    app.state.onotology = ArticleOntologyService(url=config.ONTOLOGY_URI, model=config.ONTOLOGY_MODEL, config = {})
+    app.state.graph_service = GraphService(uri = config.DATABASE_URI)
 
 
-    params = pika.URLParameters(MESSAGING_URI)
+    params = pika.URLParameters(config.MESSAGING_URI)
     connection = pika.BlockingConnection(params)
     channel = connection.channel() 
     channel.queue_declare(queue='rss_tasks', durable=True)
