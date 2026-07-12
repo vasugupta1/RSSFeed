@@ -13,7 +13,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 //###################Messasging################################
 var messagingQueue = builder
-                        .AddRabbitMQ("messaging")
+                        .AddRabbitMQ("messaging", userName: builder.AddParameter("rmq-user", "guest"), password: builder.AddParameter("rmq-pwd", "guest"))
                         .WithDataVolume("rssfeed-queue-data")
                         .WithLifetime(ContainerLifetime.Persistent)
                         .WithManagementPlugin();

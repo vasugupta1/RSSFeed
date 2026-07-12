@@ -1,10 +1,9 @@
 import os
 from fastapi import FastAPI, HTTPException, status
 import uvicorn
-import pika
-
 from contextlib import asynccontextmanager
 from crawl4ai import AsyncWebCrawler, BrowserConfig
+
 from services.crawl import Crawl
 from services.articleanalysis import RSSAnalyserService, ArticleAnalysis
 from services.crawl import Crawl
@@ -27,18 +26,9 @@ async def lifespan(app: FastAPI):
     app.state.llm = RSSAnalyserService(url=config.LLM_URI, model=config.LLM_MODEL, config = {})
     app.state.onotology = ArticleOntologyService(url=config.LLM_URI, model=config.LLM_MODEL, config = {})
     app.state.graph_service = GraphService(uri = config.DATABASE_URI)
-
-
-    params = pika.URLParameters(config.MESSAGING_URI)
-    connection = pika.BlockingConnection(params)
-    channel = connection.channel() 
-    channel.queue_declare(queue='rss_tasks', durable=True)
-    print(" Queue 'rss_tasks' is guaranteed to exist now!")
-
-    messaging_service = VectorEmbeddingMessanger(channel= channel)
+    messaging_service : VectorEmbeddingMessanger = VectorEmbeddingMessanger(uri = config.MESSAGING_URI)
     app.state.messaging_service = messaging_service
     
-
     yield
     await shared_crawler.close()
 
@@ -47,8 +37,10 @@ app = FastAPI(lifespan=lifespan)
 @app.get("/healthcheck")
 def heartcheck():
     graph_service: GraphService = app.state.graph_service
+    messaging_service : VectorEmbeddingMessanger = app.state.messaging_service
     service_result =  {}
-    service_result["graph_service"] =  graph_service.can_connect()
+    service_result["graph_database"] =  graph_service.can_connect()
+    service_result["vector_embedding_queue"] = messaging_service.can_connect()
 
     if False in service_result.values():
         raise HTTPException(
@@ -61,14 +53,18 @@ def heartcheck():
 
 @app.get("/api/crawl")
 async def crawl(url: str):
-    result = await app.state.crawler_service.run(url)
+    crawl_servie : Crawl = app.state.crawler_service
+    crawl_result : str = await crawl_servie.run(url)
     llm :RSSAnalyserService = app.state.llm
-    onotology: ArticleOntologyService = app.state.onotology
-    llmResponse: ArticleAnalysis = llm.analyze_text(result)
-    onotlogyResponse = onotology.extract_ontology(result)
-    graph_service: GraphService = app.state.graph_service
-    sucessfull = graph_service.save_ontology(onotlogyResponse, llmResponse.title)
-    print(onotlogyResponse)
+    llmResponse: ArticleAnalysis = llm.analyze_text(crawl_result)
+    messanger: VectorEmbeddingMessanger = app.state.messaging_service
+    messanger.publish(crawl_result)
+    
+    # onotology: ArticleOntologyService = app.state.onotology
+    # onotlogyResponse = onotology.extract_ontology(result)
+    # graph_service: GraphService = app.state.graph_service
+    # sucessfull = graph_service.save_ontology(onotlogyResponse, llmResponse.title)
+    # print(onotlogyResponse)
   
     return {"url": url, 
             "title": llmResponse.title, 
