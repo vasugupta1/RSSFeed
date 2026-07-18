@@ -26,6 +26,8 @@ func (h *DeleteArticleHandler) DeleteArticle(w http.ResponseWriter, r *http.Requ
 		slog.Error("Failed to parse crawler request", "error", err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
-	h.Respository.DeleteArticle(r.Context(), requestBody.URL)
+	if err := h.Respository.DeleteArticle(r.Context(), requestBody.URL); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 	httputil.WriteJSON(w, http.StatusOK, "ok", nil)
 }
