@@ -20,7 +20,11 @@ type FetchArticleBackGroundService struct {
 	rateLimiter    *concurrency.RateLimiter[struct{}]
 }
 
-func NewFetchArticleBackGroundService(articlesChan <-chan repomodels.Articles, crawlerService service.CrawlerService, respository interfaces.FeedRepository, rateLimit int) *FetchArticleBackGroundService {
+func NewFetchArticleBackGroundService(
+	articlesChan <-chan repomodels.Articles,
+	crawlerService service.CrawlerService,
+	respository interfaces.FeedRepository,
+	rateLimit int) *FetchArticleBackGroundService {
 	return &FetchArticleBackGroundService{
 		articles:       articlesChan,
 		crawlerService: crawlerService,
@@ -30,6 +34,18 @@ func NewFetchArticleBackGroundService(articlesChan <-chan repomodels.Articles, c
 }
 
 func (fa *FetchArticleBackGroundService) processArticle(ctx context.Context, a repomodels.Articles) {
+
+	articleExists, err := fa.respository.ArticleExists(ctx, a.URL)
+
+	if err != nil {
+		slog.Error("Failed to search in the database if article exists", "error", err)
+		return
+	}
+
+	if articleExists {
+		return
+	}
+
 	crawlResponse, err := fa.crawlerService.CrawlUrl(ctx, a.URL)
 	if err != nil {
 		slog.Error("Failed to crawl url in the background service", "error", err)
@@ -54,6 +70,7 @@ func (fa *FetchArticleBackGroundService) processArticle(ctx context.Context, a r
 }
 
 func (fa *FetchArticleBackGroundService) FetchArticleAndCache(ctx context.Context) {
+	slog.Info("Starting Article Fectching Background service")
 	heartbeat, results := concurrency.DoWork(ctx, time.Second, fa.articles)
 	var wg sync.WaitGroup
 	defer func() {
@@ -68,9 +85,10 @@ func (fa *FetchArticleBackGroundService) FetchArticleAndCache(ctx context.Contex
 			slog.Info("Articles channel closed. Exiting background worker loop.")
 			return
 		case <-heartbeat:
+			slog.Info("FetchArticleAndCache heartbeat successfull")
 		case result, ok := <-results:
 			if !ok {
-				slog.Error("Failed to read from fetch article background service channel")
+				slog.Info("Result channel closed, stopping background worker")
 				return
 			}
 
