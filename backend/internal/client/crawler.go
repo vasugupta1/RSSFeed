@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -22,13 +23,21 @@ func NewCrawlerClient(baseUrl string) *CrawlerApiClient {
 	}
 }
 
-func (c *CrawlerApiClient) CrawlUrl(url string) (*models.CrawlUrlResponse, error) {
+func (c *CrawlerApiClient) CrawlUrl(ctx context.Context, url string) (*models.CrawlUrlResponse, error) {
 	if url == "" {
 		return nil, fmt.Errorf("url cannot be null or empty")
 	}
 
-	res, err := c.httpClient.Get(fmt.Sprintf("%s/api/crawl?url=%s", c.baseUrl, url))
-	if res.StatusCode != http.StatusOK || err != nil {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s/api/crawl?url=%s", c.baseUrl, url), nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	res, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("crawler API request failed: %w", err)
+	}
+	if res.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("crawler API returned status code %d", res.StatusCode)
 	}
 

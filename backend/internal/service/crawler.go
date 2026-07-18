@@ -27,7 +27,7 @@ func NewCrawlerService(cc *client.CrawlerApiClient, rateLimiter int) CrawlerServ
 func (s *crawlerService) CrawlUrl(ctx context.Context, url string) (*models.CrawlUrlResponse, error) {
 
 	result, error := s.polly.Process(ctx, func() (*models.CrawlUrlResponse, error) {
-		res, err := s.crawlerClient.CrawlUrl(url)
+		res, err := s.crawlerClient.CrawlUrl(ctx, url)
 		if err != nil {
 			return nil, err
 		}

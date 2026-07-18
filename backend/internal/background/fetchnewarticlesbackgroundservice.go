@@ -28,16 +28,6 @@ func NewFetchFeedUrlArticlesBackGroudService(a chan<- repomodels.Articles, r int
 
 func (fu *FetchNewUrlArticlesBackGroudService) FetchFeedUrlArticleAndCache(ctx context.Context) {
 	slog.Info("Starting fetching of existing urls")
-	feeds, err := fu.repository.GetAllFeed(ctx)
-	if err != nil {
-		slog.Error("Failed to get all feeds from database", "error", err)
-		return
-	}
-
-	urlList := make([]string, len(feeds))
-	for i, feed := range feeds {
-		urlList[i] = feed.Link
-	}
 
 	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
@@ -50,6 +40,16 @@ func (fu *FetchNewUrlArticlesBackGroudService) FetchFeedUrlArticleAndCache(ctx c
 			return
 
 		case <-ticker.C:
+			feeds, err := fu.repository.GetAllFeed(ctx)
+			if err != nil {
+				slog.Error("Failed to get all feeds from database", "error", err)
+				return
+			}
+
+			urlList := make([]string, len(feeds))
+			for i, feed := range feeds {
+				urlList[i] = feed.Link
+			}
 			slog.Info("Tick received: spawning goroutines for URL fetching", "count", len(urlList))
 			var wg sync.WaitGroup
 			for _, url := range urlList {
