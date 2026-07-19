@@ -55,6 +55,7 @@ func main() {
 	}()
 
 	articleCrawlPublisher := messaging.NewEventPublisher[event.CrawlArticleEvent](conn, cfg.CrawlEventQueueName)
+	articleCrawlResultconsumer := messaging.NewEventConsumer[models.ArticleSummary](conn, cfg.CrawlEventResultQueueName, "bff")
 
 	// Initialize clients
 	crawlerClient := client.NewCrawlerClient(cfg.CrawlerApiUrl)
@@ -69,8 +70,11 @@ func main() {
 	articleSaveBackGroundService := background.NewFetchArticleBackGroundService(articleChannel, articleCrawlPublisher, cfg.ApiRateLimitValue)
 	go articleSaveBackGroundService.PublishCrawlUrlEvent(ctx)
 
-	fetchfeedArticleSaveBackGroundService := background.NewFetchFeedUrlArticlesBackGroudService(articleChannel, respositoryService)
-	go fetchfeedArticleSaveBackGroundService.FetchFeedUrlArticleAndCache(ctx)
+	articleConsumerService := background.NewConsumeCrawlProcessingEvent(articleCrawlResultconsumer, respositoryService)
+	go articleConsumerService.ConsumeCrawlUrlResultEvent(ctx)
+
+	// fetchfeedArticleSaveBackGroundService := background.NewFetchFeedUrlArticlesBackGroudService(articleChannel, respositoryService)
+	// go fetchfeedArticleSaveBackGroundService.FetchFeedUrlArticleAndCache(ctx)
 
 	// Initialize handlers
 	crawlerHandler := handler.NewCrawlerHandler(crawlerService, respositoryService)
