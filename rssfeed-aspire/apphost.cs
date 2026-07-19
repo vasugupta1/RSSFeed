@@ -145,7 +145,6 @@ static IResourceBuilder<ContainerResource> AddRabitMqQueueInit(IDistributedAppli
         .WithReference(rabbitMq)
         .WithEnvironment("RMQ_USER", userParam)
         .WithEnvironment("RMQ_PWD", pwdParam)
-        // Execute curls sequentially when RabbitMQ is healthy
         .WithArgs("-c", inlineScript)
         .WithEntrypoint("sh") 
         .WaitFor(rabbitMq);
