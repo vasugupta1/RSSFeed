@@ -5,23 +5,25 @@ import json
 from typing import Any, Callable
 from pika.spec import Basic 
 from pika.spec import BasicProperties
+from pika import BlockingConnection
 
 
-class VectorEmbeddingMessanger:
+class MessagingService:
     def __init__(self, uri: str, queue_name: str):
         self.uri = uri
         self.queue_name = queue_name
 
-    def __create_channel__(self) -> BlockingChannel:
+    def __create__(self) -> tuple[BlockingConnection, BlockingChannel]:
         params = pika.URLParameters(self.uri)
         connection = pika.BlockingConnection(params)
         channel = connection.channel() 
-        return channel
+        return connection,channel
 
     def can_connect(self) -> bool:
         channel: BlockingChannel | None = None
+        connection: BlockingConnection | None = None
         try:
-            channel = self.__create_channel__()
+            connection, channel = self.__create__()
             return True
 
         except (AMQPConnectionError, AMQPChannelError) as e:
@@ -33,11 +35,15 @@ class VectorEmbeddingMessanger:
         finally:
             if channel and channel.is_open:
                 channel.close()
+            if connection and connection.is_open:
+                connection.close()
+            
 
     def publish(self, message_body: Any) -> bool:
         channel: BlockingChannel | None = None
+        connection: BlockingConnection | None = None
         try:
-            channel = self.__create_channel__()
+            connection, channel = self.__create__()
             serialized_data = json.dumps(message_body).encode('utf-8')
             channel.basic_publish(
                 exchange='',
@@ -60,12 +66,14 @@ class VectorEmbeddingMessanger:
         finally:
             if channel and channel.is_open:
                 channel.close()
+            if connection and connection.is_open:
+                connection.close()
 
     def comsume(self, callback: Callable[[Any], None]) -> None:
         channel: BlockingChannel | None = None
+        connection: BlockingConnection | None = None
         try:
-            channel = self.__create_channel__()
-
+            connection, channel = self.__create__()
             def pika_callback(ch: BlockingChannel, method: Basic.Deliver, properties: BasicProperties, body: bytes) -> None:
                 try:
                     obj = json.loads(body.decode("utf-8"))
@@ -93,3 +101,5 @@ class VectorEmbeddingMessanger:
         finally:
             if channel and channel.is_open:
                 channel.close()
+            if connection and connection.is_open:
+                connection.close()

@@ -4,20 +4,24 @@ import uvicorn
 from contextlib import asynccontextmanager
 from crawl4ai import AsyncWebCrawler, BrowserConfig
 import threading
+import asyncio
 
 from services.crawl import Crawl
 from services.articleanalysis import RSSAnalyserService, ArticleAnalysis
 from services.crawl import Crawl
 from services.articleontology import ArticleOntologyService
 from services.graphservice import GraphService
-from services.messagingservice import VectorEmbeddingMessanger
-from background_services.crawlresultprocessing import CrawlResultProcessingBackgroundService
+from services.messagingservice import MessagingService
+from background_services.crawleventconsumer import CrawlEventConsumer
+
 from config.appconfiguration import AppConfiguration
 
 config : AppConfiguration = AppConfiguration() # type: ignore[reportCallIssue]
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    loop = asyncio.get_running_loop()
+
     browser_config = BrowserConfig(
         headless=True, 
         extra_args=["--disable-gpu", "--disable-dev-shm-usage", "--no-sandbox"]
@@ -30,11 +34,17 @@ async def lifespan(app: FastAPI):
     app.state.onotology = onotlogy
     graph_service = GraphService(uri = config.DATABASE_URI)
     app.state.graph_service = graph_service
-    messaging_service : VectorEmbeddingMessanger = VectorEmbeddingMessanger(uri = config.MESSAGING_URI, queue_name= config.ONTOLOOGY_QUEUE)
-    app.state.messaging_service = messaging_service
 
-    consumer_thread = threading.Thread(target=CrawlResultProcessingBackgroundService(messaging_service, onotlogy, graph_service).run_consumer, daemon=True)
+
+    crawl_event_messaging : MessagingService = MessagingService(uri = config.MESSAGING_URI, queue_name= config.CRAWL_QUEUE)
+    crawl_event_result_messaging: MessagingService = MessagingService(uri = config.MESSAGING_URI, queue_name= config.CRAWL_RESULT_QUEUE)
+
+
+    consumer_thread = threading.Thread(target=CrawlEventConsumer(crawl_event_messaging, crawl_event_result_messaging, app.state.crawler_service , app.state.llm, loop ).run_consumer, daemon=True)
     consumer_thread.start()
+
+    # consumer_thread = threading.Thread(target=CrawlResultProcessingBackgroundService(messaging_service, onotlogy, graph_service).run_consumer, daemon=True)
+    # consumer_thread.start()
 
     yield
     await shared_crawler.close()
@@ -44,7 +54,7 @@ app = FastAPI(lifespan=lifespan)
 @app.get("/healthcheck")
 def heartcheck():
     graph_service: GraphService = app.state.graph_service
-    messaging_service : VectorEmbeddingMessanger = app.state.messaging_service
+    messaging_service : MessagingService = app.state.messaging_service
     service_result =  {}
     service_result["graph_database"] = "healthy" if graph_service.can_connect() else "unhealthy"
     service_result["vector_embedding_queue"] = "healthy" if  messaging_service.can_connect() else "unhealthy"
@@ -64,8 +74,8 @@ async def crawl(url: str):
     crawl_result : str = await crawl_servie.run(url)
     llm :RSSAnalyserService = app.state.llm
     article_analysis: ArticleAnalysis = llm.analyze_text(crawl_result)
-    messanger: VectorEmbeddingMessanger = app.state.messaging_service
-    messanger.publish(article_analysis.model_dump())
+    # messanger: VectorEmbeddingMessanger = app.state.messaging_service
+    # messanger.publish(article_analysis.model_dump())
     
     return {"url": url, 
             "title": article_analysis.title, 
