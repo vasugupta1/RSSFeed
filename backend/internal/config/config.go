@@ -11,6 +11,7 @@ type APIConfiguration struct {
 	ApiRateLimitValue         int
 	CrawlEventQueueName       string
 	CrawlEventResultQueueName string
+	PublishingChannelUri      string
 }
 
 func Load() APIConfiguration {
@@ -23,6 +24,7 @@ func Load() APIConfiguration {
 		ApiRateLimitValue:         5,
 		CrawlEventQueueName:       GetEnv("RABBITMQ_CRAWL_QUEUE", "rssfeed-article-crawl-event"),
 		CrawlEventResultQueueName: GetEnv("RABBITMQ_CRAWL_RESULT_QUEUE", "rssfeed-article-crawl-result-event"),
+		PublishingChannelUri:      GetEnv("MESSAGING_URI", ""),
 	}
 }
 

@@ -18,7 +18,7 @@ var articleOntologyEvent = "rssfeed-article-ontology-event";
 
 var username = builder.AddParameter("rmq-user", "guest");
 var password = builder.AddParameter("rmq-pwd", "guest");
-var messagingQueue = builder
+var messagingQueues = builder
                         .AddRabbitMQ("messaging", userName: username, password: password)
                         .WithDataVolume("rssfeed-queue-data")
                         .WithLifetime(ContainerLifetime.Persistent)
@@ -26,7 +26,7 @@ var messagingQueue = builder
 
 var messagingMigration = AddRabitMqQueueInit(
     builder, 
-    messagingQueue, 
+    messagingQueues, 
     username, 
     password, 
     articleCrawlEvent, articleCrawlResultEvent,  articleOntologyEvent
@@ -97,10 +97,10 @@ var ai = builder.AddUvicornApp(name: "rssfeedai", appDirectory: "../ai", app: "a
                     .WithReference(llm)
                     .WithReference(graphDb)
                     .WithReference(vectorDb)
-                    .WithReference(messagingQueue)
+                    .WithReference(messagingQueues)
                     .WaitFor(mongodb)
                     .WaitFor(llm)
-                    .WaitFor(messagingQueue)
+                    .WaitFor(messagingQueues)
                     .WaitForCompletion(graphDbMigration)
                     .WaitForCompletion(vectorDbMigration)
                     .WithHttpEndpoint(port: 8001);
@@ -115,7 +115,9 @@ var rssfeedwebapp = builder
                     .WithEnvironment("RABBITMQ_CRAWL_RESULT_QUEUE", articleCrawlResultEvent)
                     .WithReference(mongodb)
                     .WithReference(ai)
-                    .WaitFor(mongodb);    
+                    .WithReference(messagingQueues)
+                    .WaitFor(mongodb)
+                    .WaitFor(messagingQueues);    
 
 //#####################Frontend################################
 var frontendservice = builder.AddViteApp(name: "rssfeedfrontend", appDirectory: "../frontend")
