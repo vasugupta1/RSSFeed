@@ -29,15 +29,10 @@ func (c *CrawlerApiClient) CrawlUrl(ctx context.Context, url string) (*models.Cr
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s/api/crawl?url=%s", c.baseUrl, url), nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
 
 	res, err := c.httpClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("crawler API request failed: %w", err)
-	}
-	if res.StatusCode != http.StatusOK {
+
+	if res.StatusCode != http.StatusOK || err != nil {
 		return nil, fmt.Errorf("crawler API returned status code %d", res.StatusCode)
 	}
 

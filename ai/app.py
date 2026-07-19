@@ -30,7 +30,7 @@ async def lifespan(app: FastAPI):
     app.state.onotology = onotlogy
     graph_service = GraphService(uri = config.DATABASE_URI)
     app.state.graph_service = graph_service
-    messaging_service : VectorEmbeddingMessanger = VectorEmbeddingMessanger(uri = config.MESSAGING_URI)
+    messaging_service : VectorEmbeddingMessanger = VectorEmbeddingMessanger(uri = config.MESSAGING_URI, queue_name= config.ONTOLOOGY_QUEUE)
     app.state.messaging_service = messaging_service
 
     consumer_thread = threading.Thread(target=CrawlResultProcessingBackgroundService(messaging_service, onotlogy, graph_service).run_consumer, daemon=True)
@@ -72,6 +72,11 @@ async def crawl(url: str):
             "summary": article_analysis.summary, 
             "keywords": article_analysis.keywords,
             "country": article_analysis.country}
+
+
+@app.get("/api/relationship")
+async def relationship():
+    return {"status": "going to implement later"}
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000)) 

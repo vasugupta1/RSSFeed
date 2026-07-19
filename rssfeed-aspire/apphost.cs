@@ -12,11 +12,25 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 
 //###################Messasging################################
+var articleCrawlEvent = "rssfeed-article-crawl-event";
+var articleCrawlResultEvent = "rssfeed-article-crawl-result-event";
+var articleOntologyEvent = "rssfeed-article-ontology-event";
+
+var username = builder.AddParameter("rmq-user", "guest");
+var password = builder.AddParameter("rmq-pwd", "guest");
 var messagingQueue = builder
-                        .AddRabbitMQ("messaging", userName: builder.AddParameter("rmq-user", "guest"), password: builder.AddParameter("rmq-pwd", "guest"))
+                        .AddRabbitMQ("messaging", userName: username, password: password)
                         .WithDataVolume("rssfeed-queue-data")
                         .WithLifetime(ContainerLifetime.Persistent)
                         .WithManagementPlugin();
+
+var messagingMigration = AddRabitMqQueueInit(
+    builder, 
+    messagingQueue, 
+    username, 
+    password, 
+    articleCrawlEvent, articleCrawlResultEvent,  articleOntologyEvent
+);
 //#####################Database################################
 
 var mongo = builder.AddMongoDB("rssfeed")
@@ -74,6 +88,9 @@ var ollama = builder.AddOllama("ollama")
 var llm = ollama.AddModel("llm", "llama3.2:latest");
 
 var ai = builder.AddUvicornApp(name: "rssfeedai", appDirectory: "../ai", app: "app:app")
+                    .WithEnvironment("RABBITMQ_ONTOLOOGY_QUEUE", articleOntologyEvent)
+                    .WithEnvironment("RABBITMQ_CRAWL_QUEUE", articleCrawlEvent)
+                    .WithEnvironment("RABBITMQ_CRAWL_RESULT_QUEUE", articleCrawlResultEvent)
                     .WithReference(mongodb)
                     .WithReference(llm)
                     .WithReference(ollama)
@@ -94,6 +111,8 @@ var rssfeedwebapp = builder
                     .AddGolangApp("rssfeedwebapp", "../backend/cmd/server")
                     .WithHttpEndpoint(env: "PORT", port: 8002)
                     .WithHttpHealthCheck("/api/healthcheck")
+                    .WithEnvironment("RABBITMQ_CRAWL_QUEUE", articleCrawlEvent)
+                    .WithEnvironment("RABBITMQ_CRAWL_RESULT_QUEUE", articleCrawlResultEvent)
                     .WithReference(mongodb)
                     .WithReference(ai)
                     .WaitFor(mongodb);    
@@ -105,3 +124,29 @@ var frontendservice = builder.AddViteApp(name: "rssfeedfrontend", appDirectory: 
                              .WithHttpEndpoint(port: 8003);
 
 builder.Build().Run();
+
+
+
+static IResourceBuilder<ContainerResource> AddRabitMqQueueInit(IDistributedApplicationBuilder builder,
+    IResourceBuilder<RabbitMQServerResource> rabbitMq,
+    IResourceBuilder<ParameterResource> userParam,
+    IResourceBuilder<ParameterResource> pwdParam,
+    params string[] queues)
+{
+    var commandList = queues.Select(q => 
+        $"curl -s -u \"$RMQ_USER:$RMQ_PWD\" -X PUT -H \"Content-Type: application/json\" " +
+        $"-d '{{\"durable\":true,\"auto_delete\":false}}' " +
+        $"http://messaging:15672/api/queues/%2F/{q}"
+    );
+    
+    var inlineScript = string.Join(" && ", commandList);
+
+    return builder.AddContainer("messaging-init", "alpine/curl")
+        .WithReference(rabbitMq)
+        .WithEnvironment("RMQ_USER", userParam)
+        .WithEnvironment("RMQ_PWD", pwdParam)
+        // Execute curls sequentially when RabbitMQ is healthy
+        .WithArgs("-c", inlineScript)
+        .WithEntrypoint("sh") 
+        .WaitFor(rabbitMq);
+}

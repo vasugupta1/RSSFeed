@@ -8,14 +8,14 @@ from pika.spec import BasicProperties
 
 
 class VectorEmbeddingMessanger:
-    def __init__(self, uri: str):
+    def __init__(self, uri: str, queue_name: str):
         self.uri = uri
+        self.queue_name = queue_name
 
     def __create_channel__(self) -> BlockingChannel:
         params = pika.URLParameters(self.uri)
         connection = pika.BlockingConnection(params)
         channel = connection.channel() 
-        channel.queue_declare(queue='rss_tasks', durable=True)
         return channel
 
     def can_connect(self) -> bool:
@@ -41,7 +41,7 @@ class VectorEmbeddingMessanger:
             serialized_data = json.dumps(message_body).encode('utf-8')
             channel.basic_publish(
                 exchange='',
-                routing_key='rss_tasks',
+                routing_key=self.queue_name,
                 body=serialized_data,
                 properties=pika.BasicProperties(
                     delivery_mode=2,
@@ -76,7 +76,7 @@ class VectorEmbeddingMessanger:
                     ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
             
             channel.basic_qos(prefetch_count=1)
-            channel.basic_consume(queue='rss_tasks', on_message_callback=pika_callback)
+            channel.basic_consume(queue=self.queue_name, on_message_callback=pika_callback)
             channel.start_consuming()
 
            
