@@ -29,19 +29,11 @@ func (c *EventConsumer[T]) ConsumeEvent(ctx context.Context) (<-chan T, error) {
 		return nil, err
 	}
 
-	defer func() {
-		if closeErr := messagingChannel.Close(); closeErr != nil {
-			slog.Error("Failed to close messaging channel cleanly", "err", closeErr)
-			if err == nil {
-				err = closeErr
-			}
-		}
-	}()
-
-	// cctx, cancel := context.WithTimeout(ctx, time.Minute)
-	// defer cancel()
-
 	msgs, err := messagingChannel.Consume(c.queueName, c.consumerName, false, false, false, false, nil)
+	if err != nil {
+		messagingChannel.Close()
+		return nil, err
+	}
 
 	out := make(chan T)
 	deliveryMessage := concurrency.OrDone(ctx, msgs)
@@ -80,6 +72,10 @@ func (c *EventConsumer[T]) ConsumeEvent(ctx context.Context) (<-chan T, error) {
 
 func (c *EventConsumer[T]) unmarshalDelivery(d amqp.Delivery) (T, error) {
 	var val T
-	json.Unmarshal(d.Body, &val)
+	err := json.Unmarshal(d.Body, &val)
+	if err != nil {
+		return val, err
+	}
+	slog.Info("DEBUGGGGGGGG", "val", val)
 	return val, nil
 }

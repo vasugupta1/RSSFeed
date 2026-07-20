@@ -19,7 +19,7 @@ class CrawlEvent(BaseModel):
 class ArticleAnalysisEvent(BaseModel):
     url: str
     title: str
-    summary: str
+    summary: List[str]
     keywords: List[str]
     country: str
 
@@ -35,7 +35,7 @@ class CrawlEventConsumer:
         return ArticleAnalysisEvent(
             url=url,
             title=source.title,
-            summary=source.article_overview,
+            summary=source.summary,
             keywords=source.keywords,
             country=source.country,
         )
@@ -67,7 +67,7 @@ class CrawlEventConsumer:
             future: Future = asyncio.run_coroutine_threadsafe(self._process_message(result), self.loop)
             future.result(timeout=300)
         except TimeoutError:
-            logger.error("Processing timed out after 180s for message: %s", result)
+            logger.error("Processing timed out after 300 for message: %s", result)
             raise
         except Exception as e:
             logger.error("Error in sync callback bridge: %s", e, exc_info=True)
