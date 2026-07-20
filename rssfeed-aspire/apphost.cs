@@ -85,7 +85,7 @@ var ollama = builder.AddOllama("ollama")
                     .WithEnvironment("OLLAMA_CONTEXT_LENGTH", "16384")
                     .WithContainerRuntimeArgs("--device", "/dev/kfd", "--device", "/dev/dri");
         
-var llm = ollama.AddModel("llm", "llama3.2:latest");
+var llm = ollama.AddModel("llm", "phi3:mini-128k");
 
 var ai = builder.AddUvicornApp(name: "rssfeedai", appDirectory: "../ai", app: "app:app")
                     .WithEnvironment("RABBITMQ_ONTOLOOGY_QUEUE", articleOntologyEvent)
@@ -128,7 +128,7 @@ var frontendservice = builder.AddViteApp(name: "rssfeedfrontend", appDirectory: 
 builder.Build().Run();
 
 
-
+//Used to create queues, quicky easy way to get it up and running
 static IResourceBuilder<ContainerResource> AddRabitMqQueueInit(IDistributedApplicationBuilder builder,
     IResourceBuilder<RabbitMQServerResource> rabbitMq,
     IResourceBuilder<ParameterResource> userParam,
