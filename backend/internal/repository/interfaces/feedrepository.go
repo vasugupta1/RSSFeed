@@ -13,4 +13,5 @@ type FeedRepository interface {
 	GetArticle(ctx context.Context, url string) (*models.ArticleSummary, error)
 	GetAllArticles(ctx context.Context) ([]models.ArticleSummary, error)
 	DeleteArticle(ctx context.Context, url string) error
+	ArticleExists(ctx context.Context, url string) (bool, error)
 }

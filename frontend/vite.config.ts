@@ -7,7 +7,11 @@ const apiTarget = process.env.services__rssfeedwebapp__http__0 ||
                   process.env.services__rssfeedwebapp__https__0 || 
                   'http://localhost:8002';
 
+// Read Aspire OTLP endpoint for the frontend telemetry proxy
+const otlpTarget = process.env.ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL || 'http://localhost:19064';
+
 console.log('Vite dev-server API proxy target:', apiTarget);
+console.log('Vite dev-server OTLP proxy target:', otlpTarget);
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -19,6 +23,11 @@ export default defineConfig({
     proxy: {
       '/api': {
         target: apiTarget,
+        changeOrigin: true,
+        secure: false,
+      },
+      '/otlp': {
+        target: otlpTarget,
         changeOrigin: true,
         secure: false,
       },

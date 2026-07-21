@@ -2,15 +2,16 @@ package main
 
 import (
 	"context"
-	"log"
 	"log/slog"
 	"os"
 
+	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/vasugupta1/RSSFeed/backend/internal/background"
 	"github.com/vasugupta1/RSSFeed/backend/internal/client"
 	"github.com/vasugupta1/RSSFeed/backend/internal/config"
 	"github.com/vasugupta1/RSSFeed/backend/internal/handler"
-	crawlerModels "github.com/vasugupta1/RSSFeed/backend/internal/models"
+	"github.com/vasugupta1/RSSFeed/backend/internal/messaging"
+	event "github.com/vasugupta1/RSSFeed/backend/internal/models"
 	"github.com/vasugupta1/RSSFeed/backend/internal/repository"
 	"github.com/vasugupta1/RSSFeed/backend/internal/repository/models"
 	"github.com/vasugupta1/RSSFeed/backend/internal/server"
@@ -35,26 +36,45 @@ func main() {
 
 	defer func() {
 		if err = respositoryService.Client.Disconnect(context.TODO()); err != nil {
-			log.Fatal(err)
+			slog.Error("Failed to close connection to database", "err", err)
 		}
 	}()
+
+	// Initialize RabbitMq connection
+	conn, err := amqp.Dial(cfg.PublishingChannelUri)
+	if err != nil {
+		slog.Error("Failed to connect to messaging", "err", err)
+		os.Exit(1)
+	}
+
+	defer func() {
+		if err := conn.Close(); err != nil {
+			slog.Error("Failed to close connection to messaging", "err", err)
+			os.Exit(1)
+		}
+	}()
+
+	articleCrawlPublisher := messaging.NewEventPublisher[event.CrawlArticleEvent](conn, cfg.CrawlEventQueueName)
+	articleCrawlResultconsumer := messaging.NewEventConsumer[models.ArticleSummary](conn, cfg.CrawlEventResultQueueName, "bff")
 
 	// Initialize clients
 	crawlerClient := client.NewCrawlerClient(cfg.CrawlerApiUrl)
 
 	// Initialize services
-	pollyLimter := service.NewPolly[*crawlerModels.CrawlUrlResponse](5)
-	crawlerService := service.NewCrawlerService(crawlerClient, pollyLimter)
+	crawlerService := service.NewCrawlerService(crawlerClient, cfg.ApiRateLimitValue)
 
 	// Initialize Background service
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	articleChannel := make(chan models.Articles, 100)
-	articleSaveBackGroundService := background.NewFetchArticleBackGroundService(articleChannel, crawlerService, respositoryService)
-	go articleSaveBackGroundService.FetchArticleAndCache(ctx)
+	articleSaveBackGroundService := background.NewFetchArticleBackGroundService(articleChannel, articleCrawlPublisher, cfg.ApiRateLimitValue)
+	go articleSaveBackGroundService.PublishCrawlUrlEvent(ctx)
 
-	fetchfeedArticleSaveBackGroundService := background.NewFetchFeedUrlArticlesBackGroudService(articleChannel, respositoryService)
-	go fetchfeedArticleSaveBackGroundService.FetchFeedUrlArticleAndCache(ctx)
+	articleConsumerService := background.NewConsumeCrawlProcessingEvent(articleCrawlResultconsumer, respositoryService)
+	go articleConsumerService.ConsumeCrawlUrlResultEvent(ctx)
+
+	// fetchfeedArticleSaveBackGroundService := background.NewFetchFeedUrlArticlesBackGroudService(articleChannel, respositoryService)
+	// go fetchfeedArticleSaveBackGroundService.FetchFeedUrlArticleAndCache(ctx)
 
 	// Initialize handlers
 	crawlerHandler := handler.NewCrawlerHandler(crawlerService, respositoryService)

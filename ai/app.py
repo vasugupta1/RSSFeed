@@ -1,24 +1,27 @@
 import os
 from fastapi import FastAPI, HTTPException, status
-from pydantic import BaseModel
 import uvicorn
-
 from contextlib import asynccontextmanager
 from crawl4ai import AsyncWebCrawler, BrowserConfig
+import threading
+import asyncio
+
 from services.crawl import Crawl
 from services.articleanalysis import RSSAnalyserService, ArticleAnalysis
 from services.crawl import Crawl
 from services.articleontology import ArticleOntologyService
 from services.graphservice import GraphService
+from services.messagingservice import MessagingService
+from background_services.crawleventconsumer import CrawlEventConsumer
 
-CHAT_URI = str(os.getenv("CHAT_URI")) 
-CHAT_MODEL = str(os.getenv("CHAT_MODEL"))
-ONTOLOGY_URI = str(os.getenv("ONOTOLOGY_URI"))
-ONTOLOGY_MODEL = str(os.getenv("ONOTOLOGY_MODEL"))
-DATABASE_URI = str(os.getenv("RSSFEEDONTOLOGY_URI"))
+from config.appconfiguration import AppConfiguration
+
+config : AppConfiguration = AppConfiguration() # type: ignore[reportCallIssue]
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    loop = asyncio.get_running_loop()
+
     browser_config = BrowserConfig(
         headless=True, 
         extra_args=["--disable-gpu", "--disable-dev-shm-usage", "--no-sandbox"]
@@ -26,10 +29,23 @@ async def lifespan(app: FastAPI):
     shared_crawler : AsyncWebCrawler = AsyncWebCrawler(config=browser_config)
     await shared_crawler.start()
     app.state.crawler_service = Crawl(shared_crawler)
-    app.state.llm = RSSAnalyserService(url=CHAT_URI, model=CHAT_MODEL, config = {})
-    app.state.onotology = ArticleOntologyService(url=ONTOLOGY_URI, model=ONTOLOGY_MODEL, config = {})
-    app.state.graph_service = GraphService(uri = DATABASE_URI)
-    
+    app.state.llm = RSSAnalyserService(url=config.LLM_URI, model=config.LLM_MODEL, config = {})
+    onotlogy : ArticleOntologyService = ArticleOntologyService(url=config.LLM_URI, model=config.LLM_MODEL, config = {})
+    app.state.onotology = onotlogy
+    graph_service = GraphService(uri = config.DATABASE_URI)
+    app.state.graph_service = graph_service
+
+
+    crawl_event_messaging : MessagingService = MessagingService(uri = config.MESSAGING_URI, queue_name= config.CRAWL_QUEUE)
+    crawl_event_result_messaging: MessagingService = MessagingService(uri = config.MESSAGING_URI, queue_name= config.CRAWL_RESULT_QUEUE)
+
+
+    consumer_thread = threading.Thread(target=CrawlEventConsumer(crawl_event_messaging, crawl_event_result_messaging, app.state.crawler_service , app.state.llm, loop ).run_consumer, daemon=True)
+    consumer_thread.start()
+
+    # consumer_thread = threading.Thread(target=CrawlResultProcessingBackgroundService(messaging_service, onotlogy, graph_service).run_consumer, daemon=True)
+    # consumer_thread.start()
+
     yield
     await shared_crawler.close()
 
@@ -38,8 +54,10 @@ app = FastAPI(lifespan=lifespan)
 @app.get("/healthcheck")
 def heartcheck():
     graph_service: GraphService = app.state.graph_service
+    messaging_service : MessagingService = app.state.messaging_service
     service_result =  {}
-    service_result["graph_service"] =  graph_service.can_connect()
+    service_result["graph_database"] = "healthy" if graph_service.can_connect() else "unhealthy"
+    service_result["vector_embedding_queue"] = "healthy" if  messaging_service.can_connect() else "unhealthy"
 
     if False in service_result.values():
         raise HTTPException(
@@ -52,20 +70,23 @@ def heartcheck():
 
 @app.get("/api/crawl")
 async def crawl(url: str):
-    result = await app.state.crawler_service.run(url)
+    crawl_servie : Crawl = app.state.crawler_service
+    crawl_result : str = await crawl_servie.run(url)
     llm :RSSAnalyserService = app.state.llm
-    onotology: ArticleOntologyService = app.state.onotology
-    llmResponse: ArticleAnalysis = llm.analyze_text(result)
-    onotlogyResponse = onotology.extract_ontology(result)
-    graph_service: GraphService = app.state.graph_service
-    sucessfull = graph_service.save_ontology(onotlogyResponse, llmResponse.title)
-    print(onotlogyResponse)
-  
+    article_analysis: ArticleAnalysis = llm.analyze_text(crawl_result)
+    # messanger: VectorEmbeddingMessanger = app.state.messaging_service
+    # messanger.publish(article_analysis.model_dump())
+    
     return {"url": url, 
-            "title": llmResponse.title, 
-            "summary": llmResponse.summary, 
-            "keywords": llmResponse.keywords,
-            "country": llmResponse.country}
+            "title": article_analysis.title, 
+            "summary": article_analysis.summary, 
+            "keywords": article_analysis.keywords,
+            "country": article_analysis.country}
+
+
+@app.get("/api/relationship")
+async def relationship():
+    return {"status": "going to implement later"}
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000)) 

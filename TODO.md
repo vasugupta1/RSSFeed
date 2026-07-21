@@ -10,3 +10,5 @@
 9. If article is already present in the database then it needs to stop creating that
 10. Maybe move the caching of articles from mongo to redis, I did it to save time in dev work 
 11. For reddit articles need to support comments also and update ai prompt so that it excludes what it thinks it might be an ai generated comment
+12. Refactor go api to use channels better
+13. Vector embeddings of the articles and based on that create graphs, current implementation doesn't do that correctly

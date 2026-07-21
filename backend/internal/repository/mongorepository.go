@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 
 	"github.com/vasugupta1/RSSFeed/backend/internal/repository/models"
@@ -72,24 +73,18 @@ func (f *MongoRepository) GetAllFeed(ctx context.Context) ([]models.Feed, error)
 	if err != nil {
 		return nil, err
 	}
-	len := cursor.RemainingBatchLength()
-	feeds := make([]models.Feed, 0, len)
-	for cursor.Next(ctx) {
-		var feed models.Feed
-		if err := cursor.Decode(&feed); err != nil {
-			return nil, err
-		}
-		feeds = append(feeds, feed)
-	}
 
-	if err := cursor.Err(); err != nil {
+	defer cursor.Close(ctx)
+
+	var feeds []models.Feed
+
+	if err := cursor.All(ctx, &feeds); err != nil {
 		return nil, err
 	}
 
-	return feeds, nil
+	return feeds, err
 }
 
-/* Only save article if it already doesn't exist in the database */
 func (f *MongoRepository) SaveArticle(ctx context.Context, articleSummary models.ArticleSummary) error {
 	collection := f.Db.Collection("feedarticle")
 
@@ -104,6 +99,20 @@ func (f *MongoRepository) SaveArticle(ctx context.Context, articleSummary models
 	}
 
 	return nil
+}
+
+func (f *MongoRepository) ArticleExists(ctx context.Context, url string) (bool, error) {
+	collection := f.Db.Collection("feedarticle")
+	filter := bson.D{{Key: "url", Value: url}}
+	err := collection.FindOne(ctx, filter).Err()
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return false, nil
+		}
+		return false, err
+	}
+
+	return true, nil
 }
 
 func (f *MongoRepository) GetArticle(ctx context.Context, url string) (*models.ArticleSummary, error) {

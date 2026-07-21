@@ -3,12 +3,34 @@
 #:package Aspire.Hosting.MongoDB@13.4.6
 #:package Aspire.Hosting.PostgreSQL@13.4.6
 #:package Aspire.Hosting.Python@13.4.6
+#:package Aspire.Hosting.RabbitMQ@13.4.6
 #:package CommunityToolkit.Aspire.Hosting.Golang@13.3.0
 #:package CommunityToolkit.Aspire.Hosting.Ollama@13.3.0
 #:sdk Aspire.AppHost.Sdk@13.4.6
 
 var builder = DistributedApplication.CreateBuilder(args);
 
+
+//###################Messasging################################
+var articleCrawlEvent = "rssfeed-article-crawl-event";
+var articleCrawlResultEvent = "rssfeed-article-crawl-result-event";
+var articleOntologyEvent = "rssfeed-article-ontology-event";
+
+var username = builder.AddParameter("rmq-user", "guest");
+var password = builder.AddParameter("rmq-pwd", "guest");
+var messagingQueues = builder
+                        .AddRabbitMQ("messaging", userName: username, password: password)
+                        .WithDataVolume("rssfeed-queue-data")
+                        .WithLifetime(ContainerLifetime.Persistent)
+                        .WithManagementPlugin();
+
+var messagingMigration = AddRabitMqQueueInit(
+    builder, 
+    messagingQueues, 
+    username, 
+    password, 
+    articleCrawlEvent, articleCrawlResultEvent,  articleOntologyEvent
+);
 //#####################Database################################
 
 var mongo = builder.AddMongoDB("rssfeed")
@@ -20,20 +42,35 @@ var mongo = builder.AddMongoDB("rssfeed")
 
 var mongodb = mongo.AddDatabase("rssfeedurl");
 
-var postgres = builder.AddPostgres("rssfeedpostgres")
+var apacheAgePostgres = builder.AddPostgres("rssfeedpostgres")
     .WithDataVolume("rssfeedai-data")
     .WithImage("apache/age", "latest")
     .WithLifetime(ContainerLifetime.Persistent)
     .WithPgAdmin();
 
-var postgresdb = postgres.AddDatabase("rssfeedontology");
+var graphDb = apacheAgePostgres.AddDatabase("rssfeedontology");
 
-var dbMigrations = builder.AddContainer("rssfeed-db-migrations", "ghcr.io/amacneil/dbmate")
-    .WithBindMount("../migrations", "/db/migrations") 
-    .WithReference(postgresdb)  
-   .WithEnvironment("DATABASE_URL", $"{postgresdb.Resource.UriExpression}?sslmode=disable&search_path=public")       
+var graphDbMigration = builder.AddContainer("rssfeed-db-migrations", "ghcr.io/amacneil/dbmate")
+    .WithBindMount("../migrations/graph", "/db/migrations") 
+    .WithReference(graphDb)  
+    .WithEnvironment("DATABASE_URL", $"{graphDb.Resource.UriExpression}?sslmode=disable&search_path=public")       
     .WithArgs("up")                                   
-    .WaitFor(postgresdb);
+    .WaitFor(graphDb);
+
+var vectorPostgres = builder.AddPostgres("rssfeed-vectordb")
+    .WithDataVolume("rssfeed-vector-data")
+    .WithImage("pgvector/pgvector", "pg15") 
+    .WithLifetime(ContainerLifetime.Persistent)
+    .WithPgAdmin();
+
+var vectorDb = vectorPostgres.AddDatabase("ressfeedvectors");
+
+var vectorDbMigration = builder.AddContainer("rssfeed-vector-db-migrations", "ghcr.io/amacneil/dbmate")
+    .WithBindMount("../migrations/vector", "/db/migrations") 
+    .WithReference(vectorDb)  
+    .WithEnvironment("DATABASE_URL", $"{vectorDb.Resource.UriExpression}?sslmode=disable&search_path=public")       
+    .WithArgs("up")                                   
+    .WaitFor(vectorDb);
 
 //#####################AI#####################################
 var ollama = builder.AddOllama("ollama")
@@ -48,30 +85,39 @@ var ollama = builder.AddOllama("ollama")
                     .WithEnvironment("OLLAMA_CONTEXT_LENGTH", "16384")
                     .WithContainerRuntimeArgs("--device", "/dev/kfd", "--device", "/dev/dri");
         
-var chatmodel = ollama.AddModel("chat", "llama3.2:latest");
-var ontologymodel = ollama.AddModel("onotology", "deepseek-r1:7b");
-
+var llm = ollama.AddModel("llm", "phi3:mini-128k");
 
 var ai = builder.AddUvicornApp(name: "rssfeedai", appDirectory: "../ai", app: "app:app")
+                    .WithEnvironment("RABBITMQ_ONTOLOOGY_QUEUE", articleOntologyEvent)
+                    .WithEnvironment("RABBITMQ_CRAWL_QUEUE", articleCrawlEvent)
+                    .WithEnvironment("RABBITMQ_CRAWL_RESULT_QUEUE", articleCrawlResultEvent)
                     .WithReference(mongodb)
-                    .WithReference(chatmodel)
+                    .WithReference(llm)
                     .WithReference(ollama)
-                    .WithReference(ontologymodel)
-                    .WithReference(postgresdb)
+                    .WithReference(llm)
+                    .WithReference(graphDb)
+                    .WithReference(vectorDb)
+                    .WithReference(messagingQueues)
                     .WaitFor(mongodb)
-                    .WaitFor(chatmodel)
-                    .WaitFor(ontologymodel)
-                    .WaitForCompletion(dbMigrations)
+                    .WaitFor(llm)
+                    .WaitFor(messagingQueues)
+                    .WaitForCompletion(graphDbMigration)
+                    .WaitForCompletion(vectorDbMigration)
                     .WithHttpEndpoint(port: 8001);
 
 //#####################BFF#####################################
 
-var rssfeedwebapp = builder.AddGolangApp("rssfeedwebapp", "../backend/cmd/server")
+var rssfeedwebapp = builder
+                    .AddGolangApp("rssfeedwebapp", "../backend/cmd/server")
                     .WithHttpEndpoint(env: "PORT", port: 8002)
                     .WithHttpHealthCheck("/api/healthcheck")
+                    .WithEnvironment("RABBITMQ_CRAWL_QUEUE", articleCrawlEvent)
+                    .WithEnvironment("RABBITMQ_CRAWL_RESULT_QUEUE", articleCrawlResultEvent)
                     .WithReference(mongodb)
                     .WithReference(ai)
-                    .WaitFor(mongodb);    
+                    .WithReference(messagingQueues)
+                    .WaitFor(mongodb)
+                    .WaitFor(messagingQueues);    
 
 //#####################Frontend################################
 var frontendservice = builder.AddViteApp(name: "rssfeedfrontend", appDirectory: "../frontend")
@@ -80,3 +126,28 @@ var frontendservice = builder.AddViteApp(name: "rssfeedfrontend", appDirectory: 
                              .WithHttpEndpoint(port: 8003);
 
 builder.Build().Run();
+
+
+//Used to create queues, quicky easy way to get it up and running
+static IResourceBuilder<ContainerResource> AddRabitMqQueueInit(IDistributedApplicationBuilder builder,
+    IResourceBuilder<RabbitMQServerResource> rabbitMq,
+    IResourceBuilder<ParameterResource> userParam,
+    IResourceBuilder<ParameterResource> pwdParam,
+    params string[] queues)
+{
+    var commandList = queues.Select(q => 
+        $"curl -s -u \"$RMQ_USER:$RMQ_PWD\" -X PUT -H \"Content-Type: application/json\" " +
+        $"-d '{{\"durable\":true,\"auto_delete\":false}}' " +
+        $"http://messaging:15672/api/queues/%2F/{q}"
+    );
+    
+    var inlineScript = string.Join(" && ", commandList);
+
+    return builder.AddContainer("messaging-init", "alpine/curl")
+        .WithReference(rabbitMq)
+        .WithEnvironment("RMQ_USER", userParam)
+        .WithEnvironment("RMQ_PWD", pwdParam)
+        .WithArgs("-c", inlineScript)
+        .WithEntrypoint("sh") 
+        .WaitFor(rabbitMq);
+}

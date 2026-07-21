@@ -1,20 +1,20 @@
-package service
+package concurrency
 
 import (
 	"context"
 )
 
-type Polly[T any] struct {
+type RateLimiter[T any] struct {
 	ch chan struct{}
 }
 
-func NewPolly[T any](limit int) *Polly[T] {
-	return &Polly[T]{
+func NewRateLimiter[T any](limit int) *RateLimiter[T] {
+	return &RateLimiter[T]{
 		ch: make(chan struct{}, limit),
 	}
 }
 
-func (p *Polly[T]) Process(ctx context.Context, f func() (T, error)) (T, error) {
+func (p *RateLimiter[T]) Process(ctx context.Context, f func() (T, error)) (T, error) {
 	select {
 	case <-ctx.Done():
 		var zero T
