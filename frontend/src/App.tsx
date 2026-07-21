@@ -28,9 +28,9 @@ function App() {
   useEffect(() => {
     fetch('/api/articles')
       .then(res => res.json())
-      .then(data => {
+      .then((data: unknown) => {
         if (Array.isArray(data)) {
-          setCachedSummaries(new Set(data.map((item: any) => item.url)));
+          setCachedSummaries(new Set(data.map((item: { url?: string }) => item.url).filter((url): url is string => !!url)));
         }
       })
       .catch(err => console.error('Failed to fetch cached summaries:', err));
@@ -199,7 +199,7 @@ function App() {
 
       return true;
     });
-  }, [allArticles, activeFeedId, starredOnly, searchQuery]);
+  }, [allArticles, activeFeedId, starredOnly, searchQuery, cachedSummaries]);
 
   // Current active article item detail
   const activeArticle = useMemo(() => {

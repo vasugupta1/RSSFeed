@@ -6,6 +6,13 @@ import ArticleList from './components/ArticleList';
 import ReaderView from './components/ReaderView';
 import AddFeedModal from './components/AddFeedModal';
 
+interface BackendArticle {
+  url?: string;
+  title?: string;
+  summary?: string[];
+  keywords?: string[];
+}
+
 function RssFeedWebApp() {
   // Application State
   const [feeds, setFeeds] = useState<Feed[]>([]);
@@ -19,36 +26,37 @@ function RssFeedWebApp() {
   const [feedUrl, setFeedUrl] = useState<string>('');
   const [modalError, setModalError] = useState<string | null>(null);
 
+  // Build a Feed object from backend article data
+  const buildBackendFeed = (data: BackendArticle[]): Feed => ({
+    id: 'backend',
+    title: 'Subscribed Feeds',
+    link: '',
+    description: 'Articles from your subscribed RSS feeds',
+    items: data
+      .filter((item) => item.url)
+      .map((item, idx: number) => ({
+        id: `backend-${idx}`,
+        title: item.title || item.url || '',
+        link: item.url || '',
+        description: Array.isArray(item.summary) && item.summary.length > 0
+          ? item.summary[0]
+          : '',
+        pubDate: new Date().toUTCString(),
+        read: false,
+        starred: false,
+        summary: Array.isArray(item.summary) ? item.summary : [],
+        keywords: Array.isArray(item.keywords) ? item.keywords : [],
+      })),
+  });
+
   // Fetch all articles from the backend GET /api/articles
   const fetchAllArticles = async () => {
     try {
       const res = await fetch('/api/articles');
       if (!res.ok) return;
-      const data = await res.json();
+      const data: unknown = await res.json();
       if (Array.isArray(data)) {
-        // Build a feed from backend articles
-        const backendFeed: Feed = {
-          id: 'backend',
-          title: 'Subscribed Feeds',
-          link: '',
-          description: 'Articles from your subscribed RSS feeds',
-          items: data
-            .filter((item: any) => item.url)
-            .map((item: any, idx: number) => ({
-              id: `backend-${idx}`,
-              title: item.title || item.url,
-              link: item.url,
-              description: Array.isArray(item.summary) && item.summary.length > 0
-                ? item.summary[0]
-                : '',
-              pubDate: new Date().toUTCString(),
-              read: false,
-              starred: false,
-              summary: Array.isArray(item.summary) ? item.summary : [],
-              keywords: Array.isArray(item.keywords) ? item.keywords : [],
-            })),
-        };
-        // Replace any existing backend feed, keep the rest
+        const backendFeed = buildBackendFeed(data as BackendArticle[]);
         setFeeds(prev => {
           const withoutBackend = prev.filter(f => f.id !== 'backend');
           return backendFeed.items.length > 0
@@ -63,7 +71,8 @@ function RssFeedWebApp() {
 
   // Load articles from backend on mount
   useEffect(() => {
-    fetchAllArticles();
+    void fetchAllArticles();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
   }, []);
 
   // Add custom feed via backend POST /api/feed
