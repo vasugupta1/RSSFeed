@@ -12,6 +12,6 @@ type ArticleSummary struct {
 	Summary   []string      `bson:"summary" json:"summary"`
 	Title     string        `bson:"title" json:"title"`
 	Keywords  []string      `bson:"keywords" json:"keywords"`
-	Country   string        `bson:"country" json"country"`
+	Country   string        `bson:"country" json:"country"`
 	CreatedAt time.Time     `bson:"created_at" json:"created_at"`
 }

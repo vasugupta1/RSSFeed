@@ -3,8 +3,8 @@ interface AddFeedModalProps {
   setIsModalOpen: (open: boolean) => void;
   feedUrl: string;
   setFeedUrl: (url: string) => void;
-  feedFormat: 'xml' | 'atom';
-  setFeedFormat: (format: 'xml' | 'atom') => void;
+  feedFormat?: 'xml' | 'atom';
+  setFeedFormat?: (format: 'xml' | 'atom') => void;
   modalError: string | null;
   handleAddFeed: (e: React.FormEvent) => void;
   isIngesting?: boolean;
@@ -15,7 +15,7 @@ export default function AddFeedModal({
   setIsModalOpen,
   feedUrl,
   setFeedUrl,
-  feedFormat,
+  feedFormat = 'xml',
   setFeedFormat,
   modalError,
   handleAddFeed,
@@ -72,7 +72,7 @@ export default function AddFeedModal({
                       ? 'bg-brand border-brand text-white shadow-sm'
                       : 'bg-app border-border-custom text-secondary hover:bg-card-hover hover:text-primary'
                   } disabled:opacity-50 disabled:cursor-not-allowed`}
-                  onClick={() => setFeedFormat('xml')}
+                  onClick={() => setFeedFormat?.('xml')}
                   disabled={isIngesting}
                 >
                   <span className="flex items-center justify-center gap-2">
@@ -90,7 +90,7 @@ export default function AddFeedModal({
                       ? 'bg-brand border-brand text-white shadow-sm'
                       : 'bg-app border-border-custom text-secondary hover:bg-card-hover hover:text-primary'
                   } disabled:opacity-50 disabled:cursor-not-allowed`}
-                  onClick={() => setFeedFormat('atom')}
+                  onClick={() => setFeedFormat?.('atom')}
                   disabled={isIngesting}
                 >
                   <span className="flex items-center justify-center gap-2">

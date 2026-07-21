@@ -16,6 +16,49 @@ interface ReaderViewProps {
   handleToggleStar: (id: string, e?: React.MouseEvent) => void;
 }
 
+// Premium Shimmer Skeleton Loading Animation
+function SkeletonLoader() {
+  return (
+    <div className="w-full max-w-2xl mx-auto space-y-8 animate-pulse py-4">
+      {/* Category & Date */}
+      <div className="h-3 w-32 bg-border-custom rounded-md"></div>
+      
+      {/* Title */}
+      <div className="space-y-3">
+        <div className="h-8 w-full bg-border-custom rounded-xl"></div>
+        <div className="h-8 w-3/4 bg-border-custom rounded-xl"></div>
+      </div>
+      
+      {/* Author Details bar */}
+      <div className="flex items-center gap-3 py-5 border-y border-border-custom my-4">
+        <div className="w-8 h-8 rounded-full bg-border-custom"></div>
+        <div className="space-y-2 flex-1">
+          <div className="h-3 w-36 bg-border-custom rounded-md"></div>
+          <div className="h-2 w-24 bg-border-custom rounded-md"></div>
+        </div>
+      </div>
+
+      {/* Paragraph blocks */}
+      <div className="space-y-4">
+        <div className="h-4 w-full bg-border-custom/75 rounded-lg"></div>
+        <div className="h-4 w-full bg-border-custom/75 rounded-lg"></div>
+        <div className="h-4 w-11/12 bg-border-custom/75 rounded-lg"></div>
+        <div className="h-4 w-5/6 bg-border-custom/75 rounded-lg"></div>
+      </div>
+
+      <div className="space-y-4 pt-4">
+        <div className="h-4 w-full bg-border-custom/75 rounded-lg"></div>
+        <div className="h-4 w-11/12 bg-border-custom/75 rounded-lg"></div>
+        <div className="h-4 w-full bg-border-custom/75 rounded-lg"></div>
+        <div className="h-4 w-2/3 bg-border-custom/75 rounded-lg"></div>
+      </div>
+
+      {/* Hero Image frame */}
+      <div className="h-56 w-full bg-border-custom/50 rounded-2xl my-8"></div>
+    </div>
+  );
+}
+
 export default function ReaderView({
   activeArticle,
   setActiveArticleId,
@@ -33,6 +76,7 @@ export default function ReaderView({
 
   // Automatically trigger the 4-step pipeline on article selection
   useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect */
     if (!activeArticle) {
       setCrawlData(null);
       setError(null);
@@ -81,52 +125,13 @@ export default function ReaderView({
           setIsLoading(false);
         }
       });
+    /* eslint-enable react-hooks/set-state-in-effect */
 
     return () => {
       isMounted = false;
     };
   }, [activeArticle]);
 
-  // Premium Shimmer Skeleton Loading Animation
-  const SkeletonLoader = () => (
-    <div className="w-full max-w-2xl mx-auto space-y-8 animate-pulse py-4">
-      {/* Category & Date */}
-      <div className="h-3 w-32 bg-border-custom rounded-md"></div>
-      
-      {/* Title */}
-      <div className="space-y-3">
-        <div className="h-8 w-full bg-border-custom rounded-xl"></div>
-        <div className="h-8 w-3/4 bg-border-custom rounded-xl"></div>
-      </div>
-      
-      {/* Author Details bar */}
-      <div className="flex items-center gap-3 py-5 border-y border-border-custom my-4">
-        <div className="w-8 h-8 rounded-full bg-border-custom"></div>
-        <div className="space-y-2 flex-1">
-          <div className="h-3 w-36 bg-border-custom rounded-md"></div>
-          <div className="h-2 w-24 bg-border-custom rounded-md"></div>
-        </div>
-      </div>
-
-      {/* Paragraph blocks */}
-      <div className="space-y-4">
-        <div className="h-4 w-full bg-border-custom/75 rounded-lg"></div>
-        <div className="h-4 w-full bg-border-custom/75 rounded-lg"></div>
-        <div className="h-4 w-11/12 bg-border-custom/75 rounded-lg"></div>
-        <div className="h-4 w-5/6 bg-border-custom/75 rounded-lg"></div>
-      </div>
-
-      <div className="space-y-4 pt-4">
-        <div className="h-4 w-full bg-border-custom/75 rounded-lg"></div>
-        <div className="h-4 w-11/12 bg-border-custom/75 rounded-lg"></div>
-        <div className="h-4 w-full bg-border-custom/75 rounded-lg"></div>
-        <div className="h-4 w-2/3 bg-border-custom/75 rounded-lg"></div>
-      </div>
-
-      {/* Hero Image frame */}
-      <div className="h-56 w-full bg-border-custom/50 rounded-2xl my-8"></div>
-    </div>
-  );
 
   return (
     <section className={`flex-1 bg-reader flex flex-col overflow-hidden max-md:absolute max-md:inset-y-0 max-md:right-0 max-md:left-16 max-md:z-20 max-md:translate-x-full max-md:transition-transform max-md:duration-250 ${activeArticle ? 'max-md:translate-x-0' : ''}`}>
