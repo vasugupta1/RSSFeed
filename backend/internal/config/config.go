@@ -12,6 +12,7 @@ type APIConfiguration struct {
 	CrawlEventQueueName       string
 	CrawlEventResultQueueName string
 	PublishingChannelUri      string
+	RSSFeedRefreshDurationMin int
 }
 
 func Load() APIConfiguration {
@@ -25,6 +26,7 @@ func Load() APIConfiguration {
 		CrawlEventQueueName:       GetEnv("RABBITMQ_CRAWL_QUEUE", "rssfeed-article-crawl-event"),
 		CrawlEventResultQueueName: GetEnv("RABBITMQ_CRAWL_RESULT_QUEUE", "rssfeed-article-crawl-result-event"),
 		PublishingChannelUri:      GetEnv("MESSAGING_URI", ""),
+		RSSFeedRefreshDurationMin: 60,
 	}
 }
 
