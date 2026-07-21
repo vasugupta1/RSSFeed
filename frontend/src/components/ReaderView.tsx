@@ -75,8 +75,8 @@ export default function ReaderView({
   const [articleByline, setArticleByline] = useState<string>('');
 
   // Automatically trigger the 4-step pipeline on article selection
-  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect */
     if (!activeArticle) {
       setCrawlData(null);
       setError(null);
@@ -125,6 +125,7 @@ export default function ReaderView({
           setIsLoading(false);
         }
       });
+    /* eslint-enable react-hooks/set-state-in-effect */
 
     return () => {
       isMounted = false;

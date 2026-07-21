@@ -71,8 +71,10 @@ function RssFeedWebApp() {
 
   // Load articles from backend on mount
   useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect */
     void fetchAllArticles();
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    /* eslint-enable react-hooks/set-state-in-effect */
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Add custom feed via backend POST /api/feed
