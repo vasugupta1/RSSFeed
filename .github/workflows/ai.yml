@@ -2,12 +2,12 @@ name: AI Service CI
 
 on:
   push:
-    branches: [main]
+    branches: [master]
     paths:
       - "ai/**"
       - ".github/workflows/ai.yml"
   pull_request:
-    branches: [main]
+    branches: [master]
     paths:
       - "ai/**"
       - ".github/workflows/ai.yml"
