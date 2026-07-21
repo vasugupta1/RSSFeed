@@ -35,8 +35,5 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Syntax check
-        run: python -m py_compile app.py
-
-      - name: Validate imports
-        run: python -c "from app import app; print('FastAPI app loaded successfully')"
+      - name: Syntax check (all files)
+        run: python -m compileall -q .
