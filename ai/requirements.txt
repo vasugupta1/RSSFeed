@@ -112,3 +112,6 @@ psycopg2-binary==2.9.10
 pika==1.3.2
 pydantic
 pydantic-settings
+langchain-postgres
+psycopg[binary]
+langchain-text-splitters

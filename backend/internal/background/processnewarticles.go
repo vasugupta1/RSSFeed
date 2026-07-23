@@ -14,30 +14,30 @@ import (
 	repomodels "github.com/vasugupta1/RSSFeed/backend/internal/repository/models"
 )
 
-type FetchNewUrlArticlesBackGroudService struct {
+type ProcessNewArticles struct {
 	articlesChannel chan<- repomodels.Articles
 	repository      interfaces.FeedRepository
+	duration        time.Duration
 }
 
-func NewFetchFeedUrlArticlesBackGroudService(a chan<- repomodels.Articles, r interfaces.FeedRepository) *FetchNewUrlArticlesBackGroudService {
-	return &FetchNewUrlArticlesBackGroudService{
+func NewProcessNewArticles(a chan<- repomodels.Articles, r interfaces.FeedRepository, d time.Duration) *ProcessNewArticles {
+	return &ProcessNewArticles{
 		articlesChannel: a,
 		repository:      r,
+		duration:        d,
 	}
 }
 
-func (fu *FetchNewUrlArticlesBackGroudService) FetchFeedUrlArticleAndCache(ctx context.Context) {
-	slog.Info("Starting Fetch New Article Event Background service")
-
-	// need this to be configured from the config object and not hardcoded here
-	ticker := time.NewTicker(60 * time.Minute)
+func (fu *ProcessNewArticles) ProcessNewRssFeedArticles(ctx context.Context) {
+	slog.Info("Starting ProcessNewRssFeedArticles Background service")
+	ticker := time.NewTicker(fu.duration)
 	defer ticker.Stop()
 
 	for {
 
 		select {
 		case <-ctx.Done():
-			slog.Info("fetch new article background service finished")
+			slog.Info("ProcessNewRssFeedArticles finished")
 			return
 
 		case <-ticker.C:
@@ -66,7 +66,7 @@ func (fu *FetchNewUrlArticlesBackGroudService) FetchFeedUrlArticleAndCache(ctx c
 	}
 }
 
-func (fu *FetchNewUrlArticlesBackGroudService) fetchAndUploadArticleToChannel(ctx context.Context, targetUrl string, ch chan<- repomodels.Articles) {
+func (fu *ProcessNewArticles) fetchAndUploadArticleToChannel(ctx context.Context, targetUrl string, ch chan<- repomodels.Articles) {
 
 	exists, err := fu.repository.ArticleExists(ctx, targetUrl)
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"os"
+	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/vasugupta1/RSSFeed/backend/internal/background"
@@ -73,8 +74,8 @@ func main() {
 	articleConsumerService := background.NewConsumeCrawlProcessingEvent(articleCrawlResultconsumer, respositoryService)
 	go articleConsumerService.ConsumeCrawlUrlResultEvent(ctx)
 
-	// fetchfeedArticleSaveBackGroundService := background.NewFetchFeedUrlArticlesBackGroudService(articleChannel, respositoryService)
-	// go fetchfeedArticleSaveBackGroundService.FetchFeedUrlArticleAndCache(ctx)
+	processNewArticlesService := background.NewProcessNewArticles(articleChannel, respositoryService, time.Duration(cfg.RSSFeedRefreshDurationMin))
+	go processNewArticlesService.ProcessNewRssFeedArticles(ctx)
 
 	// Initialize handlers
 	crawlerHandler := handler.NewCrawlerHandler(crawlerService, respositoryService)

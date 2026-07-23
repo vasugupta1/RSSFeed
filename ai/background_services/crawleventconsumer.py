@@ -5,7 +5,9 @@ from services.crawl import Crawl
 from services.articleanalysis import RSSAnalyserService, ArticleAnalysis
 from asyncio.events import AbstractEventLoop
 from concurrent.futures import Future
+from services.embedding import EmbeddingService
 import asyncio
+
 import logging
 
 logger = logging.getLogger(__name__)
@@ -24,12 +26,19 @@ class ArticleAnalysisEvent(BaseModel):
     country: str
 
 class CrawlEventConsumer:
-    def __init__(self, crawl_event_messaging: MessagingService, crawl_result_event_messaging: MessagingService, crawl: Crawl, analyser: RSSAnalyserService, loop: AbstractEventLoop):
+    def __init__(self, 
+                crawl_event_messaging: MessagingService,
+                crawl_result_event_messaging: MessagingService,
+                crawl: Crawl,
+                analyser: RSSAnalyserService,
+                embedding: EmbeddingService,
+                loop: AbstractEventLoop):
         self.crawl_event_messaging = crawl_event_messaging
         self.crawl_result_event_messaging = crawl_result_event_messaging
         self.crawl = crawl
         self.analyser = analyser
         self.loop = loop
+        self.embedding_service = embedding
 
     def _to_article_analysis_event(self, source: ArticleAnalysis, url: str) -> ArticleAnalysisEvent:
         return ArticleAnalysisEvent(
@@ -47,7 +56,10 @@ class CrawlEventConsumer:
             
             logger.info("Crawling url: %s", event.url)
             crawl_result : str = await self.crawl.run(event.url)
-            
+
+            logger.info("Generating and saving embeddings for crawl request")
+            self.embedding_service.generate_and_save_embedding(crawl_result)
+
             logger.info("Analysing crawled content for: %s", event.url)
             article_analysis: ArticleAnalysis = self.analyser.analyze_text(crawl_result)
             

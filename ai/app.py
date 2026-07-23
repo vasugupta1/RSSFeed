@@ -13,6 +13,7 @@ from services.articleontology import ArticleOntologyService
 from services.graphservice import GraphService
 from services.messagingservice import MessagingService
 from background_services.crawleventconsumer import CrawlEventConsumer
+from services.embedding import EmbeddingService
 
 from config.appconfiguration import AppConfiguration
 
@@ -30,17 +31,25 @@ async def lifespan(app: FastAPI):
     await shared_crawler.start()
     app.state.crawler_service = Crawl(shared_crawler)
     app.state.llm = RSSAnalyserService(url=config.LLM_URI, model=config.LLM_MODEL, config = {})
+    app.state.embedding_service = EmbeddingService(model_uri= config.EMBEDDING_URI, model_name= config.EMBEDDING_MODEL, vector_store_connection_string= config.VECTOR_DATBASE_URI)
     onotlogy : ArticleOntologyService = ArticleOntologyService(url=config.LLM_URI, model=config.LLM_MODEL, config = {})
     app.state.onotology = onotlogy
     graph_service = GraphService(uri = config.DATABASE_URI)
     app.state.graph_service = graph_service
+    
+
+    app.state.crawl_event_messaging = MessagingService(uri = config.MESSAGING_URI, queue_name= config.CRAWL_QUEUE)
+
+    app.state.crawl_event_result_messaging = MessagingService(uri = config.MESSAGING_URI, queue_name= config.CRAWL_RESULT_QUEUE)
 
 
-    crawl_event_messaging : MessagingService = MessagingService(uri = config.MESSAGING_URI, queue_name= config.CRAWL_QUEUE)
-    crawl_event_result_messaging: MessagingService = MessagingService(uri = config.MESSAGING_URI, queue_name= config.CRAWL_RESULT_QUEUE)
-
-
-    consumer_thread = threading.Thread(target=CrawlEventConsumer(crawl_event_messaging, crawl_event_result_messaging, app.state.crawler_service , app.state.llm, loop ).run_consumer, daemon=True)
+    consumer_thread = threading.Thread(target=CrawlEventConsumer(
+        app.state.crawl_event_messaging, 
+        app.state.crawl_event_result_messaging, 
+        app.state.crawler_service , 
+        app.state.llm, 
+        app.state.embedding_service, 
+        loop).run_consumer, daemon=True)
     consumer_thread.start()
 
     # consumer_thread = threading.Thread(target=CrawlResultProcessingBackgroundService(messaging_service, onotlogy, graph_service).run_consumer, daemon=True)
@@ -53,11 +62,11 @@ app = FastAPI(lifespan=lifespan)
 
 @app.get("/healthcheck")
 def heartcheck():
-    graph_service: GraphService = app.state.graph_service
-    messaging_service : MessagingService = app.state.messaging_service
     service_result =  {}
-    service_result["graph_database"] = "healthy" if graph_service.can_connect() else "unhealthy"
-    service_result["vector_embedding_queue"] = "healthy" if  messaging_service.can_connect() else "unhealthy"
+    service_result["graph_database"] = "healthy" if app.state.graph_service.can_connect() else "unhealthy"
+    service_result["crawl_event_queue"] = "healthy" if  app.state.crawl_event_messaging.can_connect() else "unhealthy"
+    service_result["crawl_result_event_queue"] = "healthy" if  app.state.crawl_event_result_messaging.can_connect() else "unhealthy"
+    service_result["vector_embedding_database"] = "healthy" if  app.state.embedding_service.can_connect() else "unhealthy"
 
     if False in service_result.values():
         raise HTTPException(
@@ -86,7 +95,9 @@ async def crawl(url: str):
 
 @app.get("/api/relationship")
 async def relationship():
-    return {"status": "going to implement later"}
+    test : EmbeddingService = app.state.embedding_service
+    reslt = test.search("Football", 5)
+    return {"test": reslt}
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000)) 
