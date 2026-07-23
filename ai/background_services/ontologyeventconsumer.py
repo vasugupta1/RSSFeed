@@ -10,7 +10,3 @@ class OntologyEventConsumer:
     def __init__(self,onotology: ArticleOntologyService,graph: GraphService):
         self.onotlogy_service : ArticleOntologyService = onotology
         self.graphy_service : GraphService = graph 
-
-
-    def run_consumer(self):
-      
