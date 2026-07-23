@@ -86,6 +86,7 @@ var ollama = builder.AddOllama("ollama")
                     .WithContainerRuntimeArgs("--device", "/dev/kfd", "--device", "/dev/dri");
         
 var llm = ollama.AddModel("llm", "phi3:mini-128k");
+var embeddings = ollama.AddModel("embeddings", "nomic-embed-text");
 
 var ai = builder.AddUvicornApp(name: "rssfeedai", appDirectory: "../ai", app: "app:app")
                     .WithEnvironment("RABBITMQ_ONTOLOOGY_QUEUE", articleOntologyEvent)
@@ -98,8 +99,10 @@ var ai = builder.AddUvicornApp(name: "rssfeedai", appDirectory: "../ai", app: "a
                     .WithReference(graphDb)
                     .WithReference(vectorDb)
                     .WithReference(messagingQueues)
+                    .WithReference(embeddings)
                     .WaitFor(mongodb)
                     .WaitFor(llm)
+                    .WaitFor(embeddings)
                     .WaitFor(messagingQueues)
                     .WaitForCompletion(graphDbMigration)
                     .WaitForCompletion(vectorDbMigration)

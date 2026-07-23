@@ -13,6 +13,7 @@ from services.articleontology import ArticleOntologyService
 from services.graphservice import GraphService
 from services.messagingservice import MessagingService
 from background_services.crawleventconsumer import CrawlEventConsumer
+from services.embedding import EmbeddingService
 
 from config.appconfiguration import AppConfiguration
 
@@ -30,17 +31,21 @@ async def lifespan(app: FastAPI):
     await shared_crawler.start()
     app.state.crawler_service = Crawl(shared_crawler)
     app.state.llm = RSSAnalyserService(url=config.LLM_URI, model=config.LLM_MODEL, config = {})
+
+    embedding_service : EmbeddingService = EmbeddingService(model_uri= config.EMBEDDING_URI, model_name= config.EMBEDDING_MODEL, vector_store_connection_string= config.VECTOR_DATBASE_URI)
+
     onotlogy : ArticleOntologyService = ArticleOntologyService(url=config.LLM_URI, model=config.LLM_MODEL, config = {})
     app.state.onotology = onotlogy
     graph_service = GraphService(uri = config.DATABASE_URI)
     app.state.graph_service = graph_service
-
+    
 
     crawl_event_messaging : MessagingService = MessagingService(uri = config.MESSAGING_URI, queue_name= config.CRAWL_QUEUE)
     crawl_event_result_messaging: MessagingService = MessagingService(uri = config.MESSAGING_URI, queue_name= config.CRAWL_RESULT_QUEUE)
 
+    
 
-    consumer_thread = threading.Thread(target=CrawlEventConsumer(crawl_event_messaging, crawl_event_result_messaging, app.state.crawler_service , app.state.llm, loop ).run_consumer, daemon=True)
+    consumer_thread = threading.Thread(target=CrawlEventConsumer(crawl_event_messaging, crawl_event_result_messaging, app.state.crawler_service , app.state.llm, embedding_service, loop).run_consumer, daemon=True)
     consumer_thread.start()
 
     # consumer_thread = threading.Thread(target=CrawlResultProcessingBackgroundService(messaging_service, onotlogy, graph_service).run_consumer, daemon=True)
