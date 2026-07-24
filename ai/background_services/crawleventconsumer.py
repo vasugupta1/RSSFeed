@@ -9,6 +9,7 @@ from services.embedding import EmbeddingService
 import asyncio
 
 import logging
+import collections
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +49,16 @@ class CrawlEventConsumer:
             keywords=source.keywords,
             country=source.country,
         )
-       
+
+    def _keywords_metadata(self, crawl_result: ArticleAnalysis ) -> list[dict[str, list[str]]]:
+        metadata = {
+            "keywords" : crawl_result.keywords,
+            "bullet_point_summary" : crawl_result.bullet_point_summary,
+            "country": [crawl_result.country]
+        }
+        
+        return [metadata]
+
     async def _process_message(self, result: dict) -> None:
         try:
             logger.info("Processing crawl event: %s", result)
@@ -57,11 +67,11 @@ class CrawlEventConsumer:
             logger.info("Crawling url: %s", event.url)
             crawl_result : str = await self.crawl.run(event.url)
 
-            logger.info("Generating and saving embeddings for crawl request")
-            self.embedding_service.generate_and_save_embedding(crawl_result)
-
             logger.info("Analysing crawled content for: %s", event.url)
             article_analysis: ArticleAnalysis = self.analyser.analyze_text(crawl_result)
+
+            logger.info("Generating and saving embeddings for crawl request")
+            self.embedding_service.generate_and_save_embedding(crawl_result, self._keywords_metadata(article_analysis))
             
             analysis_event = self._to_article_analysis_event(article_analysis, event.url)
             logger.info("Publishing analysis result for: %s", event.url)

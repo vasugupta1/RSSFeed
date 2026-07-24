@@ -14,7 +14,7 @@ class EmbeddingService:
         )   
         self.engine = create_engine(vector_store_connection_string)
 
-    def generate_and_save_embedding(self, request: str) -> list[str]:
+    def generate_and_save_embedding(self, request: str, metadata: list[dict[str, list[str]]]) -> list[str]:
         text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=1500,
             chunk_overlap=150,
@@ -22,10 +22,10 @@ class EmbeddingService:
             is_separator_regex=False,
         )
         chunks = text_splitter.split_text(request)
-        result = self.vector_store.add_texts(chunks)
+        result = self.vector_store.add_texts(texts = chunks, metadatas= metadata)
         return result
 
-    def search(self, search_query: str, k :int =  1) -> list[Document]:
+    def search(self, search_query: str, k: int =  1) -> list[Document]:
         results = self.vector_store.similarity_search(search_query, k)
         return results 
 
