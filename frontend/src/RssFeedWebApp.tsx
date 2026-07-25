@@ -26,6 +26,9 @@ function RssFeedWebApp() {
   const [feedUrl, setFeedUrl] = useState<string>('');
   const [modalError, setModalError] = useState<string | null>(null);
 
+  // Sync State
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+
   // Build a Feed object from backend article data
   const buildBackendFeed = (data: BackendArticle[]): Feed => ({
     id: 'backend',
@@ -108,6 +111,24 @@ function RssFeedWebApp() {
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : 'Failed to add feed.';
       setModalError(errMsg);
+    }
+  };
+
+  // Sync all feeds via POST /api/sync
+  const handleSync = async () => {
+    if (isSyncing) return;
+    setIsSyncing(true);
+    try {
+      const res = await fetch('/api/sync', { method: 'POST' });
+      if (!res.ok) {
+        console.error('Sync failed:', res.status, res.statusText);
+      }
+      // Refresh articles after sync
+      await fetchAllArticles();
+    } catch (err) {
+      console.error('Failed to sync feeds:', err);
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -250,6 +271,8 @@ function RssFeedWebApp() {
         starredOnly={starredOnly}
         setStarredOnly={setStarredOnly}
         onAddFeedClick={() => setIsModalOpen(true)}
+        onSyncClick={handleSync}
+        isSyncing={isSyncing}
       />
 
       <div className="flex flex-1 overflow-hidden h-[calc(100vh-72px)]">

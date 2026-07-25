@@ -4,6 +4,8 @@ interface HeaderProps {
   starredOnly: boolean;
   setStarredOnly: (starred: boolean) => void;
   onAddFeedClick: () => void;
+  onSyncClick: () => void;
+  isSyncing: boolean;
 }
 
 export default function Header({
@@ -11,7 +13,9 @@ export default function Header({
   setSearchQuery,
   starredOnly,
   setStarredOnly,
-  onAddFeedClick
+  onAddFeedClick,
+  onSyncClick,
+  isSyncing
 }: HeaderProps) {
   return (
     <header className="flex items-center justify-between px-6 py-4 bg-sidebar/85 backdrop-blur-md border-b border-border-custom z-10 h-[72px]">
@@ -54,6 +58,32 @@ export default function Header({
             <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
           </svg>
           <span className="max-sm:hidden">Starred</span>
+        </button>
+
+        {/* Sync Feeds Button */}
+        <button 
+          className={`flex items-center gap-2 px-3 py-2 bg-card border border-border-custom rounded-xl text-secondary text-sm cursor-pointer transition-all hover:bg-card-hover hover:text-primary ${isSyncing ? 'opacity-70 cursor-not-allowed' : ''}`}
+          onClick={onSyncClick}
+          disabled={isSyncing}
+          title="Sync all feeds"
+        >
+          <svg 
+            width="16" 
+            height="16" 
+            viewBox="0 0 24 24" 
+            fill="none" 
+            stroke="currentColor" 
+            strokeWidth="2.5" 
+            strokeLinecap="round" 
+            strokeLinejoin="round"
+            className={isSyncing ? 'animate-spin' : ''}
+          >
+            <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+            <path d="M3 3v5h5" />
+            <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
+            <path d="M16 16h5v5" />
+          </svg>
+          <span className="max-sm:hidden">{isSyncing ? 'Syncing…' : 'Sync'}</span>
         </button>
 
         {/* Add Feed Button */}
