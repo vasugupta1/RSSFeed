@@ -7,9 +7,7 @@ from asyncio.events import AbstractEventLoop
 from concurrent.futures import Future
 from services.embedding import EmbeddingService
 import asyncio
-
 import logging
-import collections
 
 logger = logging.getLogger(__name__)
 

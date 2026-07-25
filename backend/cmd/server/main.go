@@ -74,7 +74,7 @@ func main() {
 	articleConsumerService := background.NewConsumeCrawlProcessingEvent(articleCrawlResultconsumer, respositoryService)
 	go articleConsumerService.ConsumeCrawlUrlResultEvent(ctx)
 
-	processNewArticlesService := background.NewProcessNewArticles(articleChannel, respositoryService, time.Duration(cfg.RSSFeedRefreshDurationMin))
+	processNewArticlesService := background.NewProcessNewArticles(articleChannel, respositoryService, time.Duration(cfg.RSSFeedRefreshDurationMin)*time.Minute)
 	go processNewArticlesService.ProcessNewRssFeedArticles(ctx)
 
 	// Initialize handlers
