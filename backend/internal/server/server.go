@@ -16,6 +16,7 @@ type Application struct {
 	HealthHandler         *handler.HealthCheckHandler
 	GetAllArticlesHandler *handler.GetAllArticlesHandler
 	DeleteArticleHandler  *handler.DeleteArticleHandler
+	SyncFeedHandler       *handler.SyncFeedHandler
 	ArticleChannel        chan models.Articles
 }
 

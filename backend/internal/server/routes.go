@@ -18,6 +18,7 @@ func (app *Application) registerRoutes() http.Handler {
 	r.Post("/api/feed", app.FeedHandler.UpsertFeedUrl)
 	r.Get("/api/articles", app.GetAllArticlesHandler.GetAllArticles)
 	r.Delete("/api/article", app.DeleteArticleHandler.DeleteArticle)
+	r.Post("/api/sync", app.SyncFeedHandler.SyncFeed)
 
 	return r
 }

@@ -83,6 +83,7 @@ func main() {
 	healthHandler := handler.NewHealthCheckHandler()
 	getAllArticlesHandler := handler.NewGetAllArticlesHandler(respositoryService)
 	deleteArticleHandler := handler.NewDeleteArticleHandler(respositoryService)
+	syncFeedHandler := handler.NewSyncFeedHandler(respositoryService, articleChannel)
 
 	// Start the server
 	app := &server.Application{
@@ -93,6 +94,7 @@ func main() {
 		GetAllArticlesHandler: getAllArticlesHandler,
 		ArticleChannel:        articleChannel,
 		DeleteArticleHandler:  deleteArticleHandler,
+		SyncFeedHandler:       syncFeedHandler,
 	}
 
 	if err := app.Run(); err != nil {
