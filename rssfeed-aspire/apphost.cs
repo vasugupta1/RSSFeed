@@ -85,7 +85,7 @@ var ollama = builder.AddOllama("ollama")
                     .WithEnvironment("OLLAMA_CONTEXT_LENGTH", "16384")
                     .WithContainerRuntimeArgs("--device", "/dev/kfd", "--device", "/dev/dri");
         
-var llm = ollama.AddModel("llm", "phi3:mini-128k");
+var llm = ollama.AddModel("llm", "llama3.2:latest");
 var embeddings = ollama.AddModel("embeddings", "nomic-embed-text");
 
 var ai = builder.AddUvicornApp(name: "rssfeedai", appDirectory: "../ai", app: "app:app")
