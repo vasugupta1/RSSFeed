@@ -94,9 +94,9 @@ async def crawl(url: str):
 
 
 @app.get("/api/relationship")
-async def relationship():
+async def relationship(keyword: str, k : int):
     test : EmbeddingService = app.state.embedding_service
-    reslt = test.search("LLM", 5)
+    reslt = test.search(keyword, k)
     return {"test": reslt}
 
 if __name__ == "__main__":

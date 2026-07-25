@@ -48,14 +48,14 @@ class CrawlEventConsumer:
             country=source.country,
         )
 
-    def _keywords_metadata(self, crawl_result: ArticleAnalysis ) -> list[dict[str, list[str]]]:
+    def _keywords_metadata(self, crawl_result: ArticleAnalysis ) -> dict[str, list[str]]:
         metadata = {
             "keywords" : crawl_result.keywords,
             "bullet_point_summary" : crawl_result.bullet_point_summary,
             "country": [crawl_result.country]
         }
         
-        return [metadata]
+        return metadata
 
     async def _process_message(self, result: dict) -> None:
         try:
@@ -64,7 +64,7 @@ class CrawlEventConsumer:
             
             logger.info("Crawling url: %s", event.url)
             crawl_result : str = await self.crawl.run(event.url)
-
+        
             logger.info("Analysing crawled content for: %s", event.url)
             article_analysis: ArticleAnalysis = self.analyser.analyze_text(crawl_result)
 
