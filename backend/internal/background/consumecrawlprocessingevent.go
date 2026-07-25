@@ -63,11 +63,16 @@ func (fa *ConsumeCrawlProcessingEvent) ConsumeCrawlUrlResultEvent(ctx context.Co
 }
 
 func (fa *ConsumeCrawlProcessingEvent) processEvent(ctx context.Context, val models.ArticleSummary) error {
-	if exists, err := fa.repository.ArticleExists(ctx, val.Url); exists || err != nil {
-		slog.Warn("Failed to check if article exists", "url", val.Url)
+	exists, err := fa.repository.ArticleExists(ctx, val.Url)
+	if err != nil {
+		slog.Warn("Failed to check if article exists", "url", val.Url, "err", err)
 		return nil
 	}
-	err := fa.repository.SaveArticle(ctx, val)
+	if exists {
+		slog.Debug("Article already exists, skipping", "url", val.Url)
+		return nil
+	}
+	err = fa.repository.SaveArticle(ctx, val)
 	if err != nil {
 		slog.Warn("Failed to save article", "url", val.Url)
 		return err
