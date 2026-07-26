@@ -36,12 +36,8 @@ async def lifespan(app: FastAPI):
     app.state.onotology = onotlogy
     graph_service = GraphService(uri = config.DATABASE_URI)
     app.state.graph_service = graph_service
-    
-
     app.state.crawl_event_messaging = MessagingService(uri = config.MESSAGING_URI, queue_name= config.CRAWL_QUEUE)
-
     app.state.crawl_event_result_messaging = MessagingService(uri = config.MESSAGING_URI, queue_name= config.CRAWL_RESULT_QUEUE)
-
 
     consumer_thread = threading.Thread(target=CrawlEventConsumer(
         app.state.crawl_event_messaging, 
