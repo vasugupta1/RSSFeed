@@ -5,6 +5,7 @@
 #:package Aspire.Hosting.Python@13.4.6
 #:package Aspire.Hosting.RabbitMQ@13.4.6
 #:package CommunityToolkit.Aspire.Hosting.Golang@13.3.0
+#:package CommunityToolkit.Aspire.Hosting.McpInspector@13.4.0
 #:package CommunityToolkit.Aspire.Hosting.Ollama@13.3.0
 #:sdk Aspire.AppHost.Sdk@13.4.6
 
@@ -87,6 +88,13 @@ var ollama = builder.AddOllama("ollama")
         
 var llm = ollama.AddModel("llm", "phi3:mini-128k");
 var embeddings = ollama.AddModel("embeddings", "nomic-embed-text");
+
+var pythonMcp = builder.AddPythonApp(
+    name: "py-mcp-server",
+    appDirectory: "../mcps/searchmcp", 
+    scriptPath: "main.py"     
+)
+.WithHttpEndpoint(env: "MCP_SERVER_PORT", name: "http", targetPort: 9091);
 
 var ai = builder.AddUvicornApp(name: "rssfeedai", appDirectory: "../ai", app: "app:app")
                     .WithEnvironment("RABBITMQ_ONTOLOOGY_QUEUE", articleOntologyEvent)
