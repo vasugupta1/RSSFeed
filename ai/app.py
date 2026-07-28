@@ -1,3 +1,6 @@
+import logging
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(levelname)s: %(message)s")
+
 import os
 from fastapi import FastAPI, HTTPException, status
 import uvicorn
@@ -32,16 +35,12 @@ async def lifespan(app: FastAPI):
     app.state.crawler_service = Crawl(shared_crawler)
     app.state.llm = RSSAnalyserService(url=config.LLM_URI, model=config.LLM_MODEL, config = {})
     app.state.embedding_service = EmbeddingService(model_uri= config.EMBEDDING_URI, model_name= config.EMBEDDING_MODEL, vector_store_connection_string= config.VECTOR_DATBASE_URI)
-    onotlogy : ArticleOntologyService = ArticleOntologyService(url=config.LLM_URI, model=config.LLM_MODEL, config = {})
+    onotlogy : ArticleOntologyService = ArticleOntologyService(url=config.LLM_URI, model=config.LLM_MODEL, mcp_server_url= config.MCP_SERVER_URL,  config = {})
     app.state.onotology = onotlogy
     graph_service = GraphService(uri = config.DATABASE_URI)
     app.state.graph_service = graph_service
-    
-
     app.state.crawl_event_messaging = MessagingService(uri = config.MESSAGING_URI, queue_name= config.CRAWL_QUEUE)
-
     app.state.crawl_event_result_messaging = MessagingService(uri = config.MESSAGING_URI, queue_name= config.CRAWL_RESULT_QUEUE)
-
 
     consumer_thread = threading.Thread(target=CrawlEventConsumer(
         app.state.crawl_event_messaging, 
@@ -51,6 +50,8 @@ async def lifespan(app: FastAPI):
         app.state.embedding_service, 
         loop).run_consumer, daemon=True)
     consumer_thread.start()
+
+
 
     # consumer_thread = threading.Thread(target=CrawlResultProcessingBackgroundService(messaging_service, onotlogy, graph_service).run_consumer, daemon=True)
     # consumer_thread.start()
@@ -91,6 +92,16 @@ async def crawl(url: str):
             "summary": article_analysis.summary, 
             "keywords": article_analysis.keywords,
             "country": article_analysis.country}
+
+@app.get("/api/test")
+async def test():
+    crawl_servie : Crawl = app.state.crawler_service
+    crawl_result : str = await crawl_servie.run("https://www.bbc.co.uk/news/articles/cy4ker2y1mko?at_medium=RSS&at_campaign=rss")
+    llm :RSSAnalyserService = app.state.llm
+    article_analysis: ArticleAnalysis = llm.analyze_text(crawl_result)
+    o_s : ArticleOntologyService = app.state.onotology
+    response = await o_s.extract_ontology(article_analysis.article_overview, article_analysis.keywords)
+    return response
 
 
 @app.get("/api/relationship")
