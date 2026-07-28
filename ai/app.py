@@ -32,7 +32,7 @@ async def lifespan(app: FastAPI):
     app.state.crawler_service = Crawl(shared_crawler)
     app.state.llm = RSSAnalyserService(url=config.LLM_URI, model=config.LLM_MODEL, config = {})
     app.state.embedding_service = EmbeddingService(model_uri= config.EMBEDDING_URI, model_name= config.EMBEDDING_MODEL, vector_store_connection_string= config.VECTOR_DATBASE_URI)
-    onotlogy : ArticleOntologyService = ArticleOntologyService(url=config.LLM_URI, model=config.LLM_MODEL, config = {})
+    onotlogy : ArticleOntologyService = ArticleOntologyService(url=config.LLM_URI, model=config.LLM_MODEL, mcp_server_url= config.MCP_SERVER_URL,  config = {})
     app.state.onotology = onotlogy
     graph_service = GraphService(uri = config.DATABASE_URI)
     app.state.graph_service = graph_service
@@ -48,8 +48,6 @@ async def lifespan(app: FastAPI):
         loop).run_consumer, daemon=True)
     consumer_thread.start()
 
-
-    
 
 
     # consumer_thread = threading.Thread(target=CrawlResultProcessingBackgroundService(messaging_service, onotlogy, graph_service).run_consumer, daemon=True)
@@ -91,6 +89,12 @@ async def crawl(url: str):
             "summary": article_analysis.summary, 
             "keywords": article_analysis.keywords,
             "country": article_analysis.country}
+
+@app.get("/api/test")
+async def test():
+    o_s : ArticleOntologyService = app.state.onotology
+    response = await o_s.extract_ontology("test", ["bbc", "today"])
+    return response
 
 
 @app.get("/api/relationship")

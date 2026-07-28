@@ -3,6 +3,12 @@ from typing import List, cast
 from langchain_ollama import ChatOllama
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_mcp_adapters.client import MultiServerMCPClient
+from services.searchmcp import SearchMCP
+import logging
+
+
+logger = logging.getLogger(__name__)
+
 
 class Entity(BaseModel):
     name: str = Field(description="The canonical name of the entity (e.g., 'Google', 'Artificial Intelligence', 'Sundar Pichai').")
@@ -20,7 +26,7 @@ class ArticleOntology(BaseModel):
 
 
 class ArticleOntologyService:
-    def __init__(self, url:str, model:str, config:dict):
+    def __init__(self, url:str, model:str, mcp_server_url:str,  config:dict):
         self.llm = ChatOllama(model=model, base_url=url, temperature=0.0)
         self.structured_llm = self.llm.with_structured_output(
             ArticleOntology,
@@ -33,11 +39,14 @@ class ArticleOntologyService:
                 "Ensure entity names are standardized (e.g., use 'Microsoft' instead of 'MSFT' if applicable). "
                 "Every relationship source and target MUST match a name defined in the entities list."
             )),
-            ("human", "Extract the ontology from this article content: {message}")
+            ("human", "Extract the ontology from this article content: {message}, with context: {context}", )
         ])
         self.chain = self.prompt | self.structured_llm
+        self.search_mcp: SearchMCP = SearchMCP(mcp_server_url= mcp_server_url, model= model, url= url)
     
 
-    def extract_ontology(self, text_content: str) -> ArticleOntology:
-        response = self.chain.invoke({"message": text_content})
+    async def extract_ontology(self, text_content: str, key_words: List[str]) -> ArticleOntology:
+        logger.info("Starting onotology processing")
+        enrich_context = await self.search_mcp.extract_with_search(key_words= key_words)
+        response = self.chain.invoke({"message": text_content, "context": enrich_context})
         return cast(ArticleOntology, response)

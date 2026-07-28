@@ -86,7 +86,7 @@ var ollama = builder.AddOllama("ollama")
                     .WithEnvironment("OLLAMA_CONTEXT_LENGTH", "16384")
                     .WithContainerRuntimeArgs("--device", "/dev/kfd", "--device", "/dev/dri");
         
-var llm = ollama.AddModel("llm", "phi3:mini-128k");
+var llm = ollama.AddModel("llm", "llama3.1");
 var embeddings = ollama.AddModel("embeddings", "nomic-embed-text");
 
 var pythonMcp = builder.AddPythonApp(
@@ -108,10 +108,12 @@ var ai = builder.AddUvicornApp(name: "rssfeedai", appDirectory: "../ai", app: "a
                     .WithReference(vectorDb)
                     .WithReference(messagingQueues)
                     .WithReference(embeddings)
+                    .WithEnvironment("MCP_SERVER_URL", pythonMcp.GetEndpoint("http"))
                     .WaitFor(mongodb)
                     .WaitFor(llm)
                     .WaitFor(embeddings)
                     .WaitFor(messagingQueues)
+                    .WaitFor(pythonMcp)
                     .WaitForCompletion(graphDbMigration)
                     .WaitForCompletion(vectorDbMigration)
                     .WithHttpEndpoint(port: 8001);
