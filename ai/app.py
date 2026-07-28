@@ -1,3 +1,6 @@
+import logging
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(levelname)s: %(message)s")
+
 import os
 from fastapi import FastAPI, HTTPException, status
 import uvicorn
@@ -92,8 +95,12 @@ async def crawl(url: str):
 
 @app.get("/api/test")
 async def test():
+    crawl_servie : Crawl = app.state.crawler_service
+    crawl_result : str = await crawl_servie.run("https://www.bbc.co.uk/news/articles/cy4ker2y1mko?at_medium=RSS&at_campaign=rss")
+    llm :RSSAnalyserService = app.state.llm
+    article_analysis: ArticleAnalysis = llm.analyze_text(crawl_result)
     o_s : ArticleOntologyService = app.state.onotology
-    response = await o_s.extract_ontology("test", ["bbc", "today"])
+    response = await o_s.extract_ontology(article_analysis.article_overview, article_analysis.keywords)
     return response
 
 
