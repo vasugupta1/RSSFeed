@@ -115,3 +115,6 @@ pydantic-settings
 langchain-postgres
 psycopg[binary]
 langchain-text-splitters
+langchain-mcp-adapters
+langgraph
+langchain

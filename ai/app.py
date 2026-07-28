@@ -48,6 +48,10 @@ async def lifespan(app: FastAPI):
         loop).run_consumer, daemon=True)
     consumer_thread.start()
 
+
+    
+
+
     # consumer_thread = threading.Thread(target=CrawlResultProcessingBackgroundService(messaging_service, onotlogy, graph_service).run_consumer, daemon=True)
     # consumer_thread.start()
 

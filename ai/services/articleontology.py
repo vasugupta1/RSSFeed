@@ -2,6 +2,7 @@ from pydantic import BaseModel, Field
 from typing import List, cast
 from langchain_ollama import ChatOllama
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_mcp_adapters.client import MultiServerMCPClient
 
 class Entity(BaseModel):
     name: str = Field(description="The canonical name of the entity (e.g., 'Google', 'Artificial Intelligence', 'Sundar Pichai').")
@@ -35,6 +36,7 @@ class ArticleOntologyService:
             ("human", "Extract the ontology from this article content: {message}")
         ])
         self.chain = self.prompt | self.structured_llm
+    
 
     def extract_ontology(self, text_content: str) -> ArticleOntology:
         response = self.chain.invoke({"message": text_content})
