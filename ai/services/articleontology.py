@@ -2,8 +2,7 @@ from pydantic import BaseModel, Field
 from typing import List, cast
 from langchain_ollama import ChatOllama
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_mcp_adapters.client import MultiServerMCPClient
-from ai.services.searchservice import SearchMCP
+from ai.services.searchservice import SearchService
 import logging
 
 
@@ -42,7 +41,7 @@ class ArticleOntologyService:
             ("human", "Extract the ontology from this article content: {message}, with context: {context}", )
         ])
         self.chain = self.prompt | self.structured_llm
-        self.search_mcp: SearchMCP = SearchMCP(mcp_server_url= mcp_server_url, model= model, url= url)
+        self.search_service: SearchService = SearchService()
     
 
     async def extract_ontology(self, text_content: str, key_words: List[str]) -> ArticleOntology:
@@ -50,10 +49,10 @@ class ArticleOntologyService:
         logger.info(f"Text content length: {len(text_content)} chars")
         logger.info(f"Keywords: {key_words}")
 
-        # Step 1: Enrich context via MCP search
+        # Step 1: Gather more context via search and crawling for keywords
         try:
-            logger.info("Calling SearchMCP.extract_with_search...")
-            enrich_context = await self.search_mcp.extract_with_search(key_words=key_words)
+            logger.info("Calling DuckDuckGo Search")
+            search_result = await self.search_service.web_search()
             logger.info(f"MCP search returned context: {len(enrich_context)} chars")
             logger.info(f"Context preview: {enrich_context[:500]}")
         except Exception as e:
