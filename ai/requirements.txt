@@ -118,3 +118,4 @@ langchain-text-splitters
 langchain-mcp-adapters
 langgraph
 langchain
+ddgs

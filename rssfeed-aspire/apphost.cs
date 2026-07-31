@@ -88,14 +88,6 @@ var ollama = builder.AddOllama("ollama")
         
 var llm = ollama.AddModel("llm", "llama3.1");
 var embeddings = ollama.AddModel("embeddings", "nomic-embed-text");
-
-var pythonMcp = builder.AddPythonApp(
-    name: "py-mcp-server",
-    appDirectory: "../mcps/searchmcp", 
-    scriptPath: "main.py"     
-)
-.WithHttpEndpoint(env: "MCP_SERVER_PORT", name: "http", targetPort: 9091);
-
 var ai = builder.AddUvicornApp(name: "rssfeedai", appDirectory: "../ai", app: "app:app")
                     .WithEnvironment("RABBITMQ_ONTOLOOGY_QUEUE", articleOntologyEvent)
                     .WithEnvironment("RABBITMQ_CRAWL_QUEUE", articleCrawlEvent)
@@ -113,7 +105,6 @@ var ai = builder.AddUvicornApp(name: "rssfeedai", appDirectory: "../ai", app: "a
                     .WaitFor(llm)
                     .WaitFor(embeddings)
                     .WaitFor(messagingQueues)
-                    .WaitFor(pythonMcp)
                     .WaitForCompletion(graphDbMigration)
                     .WaitForCompletion(vectorDbMigration)
                     .WithHttpEndpoint(port: 8001);

@@ -3,7 +3,7 @@ from typing import List, cast
 from langchain_ollama import ChatOllama
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_mcp_adapters.client import MultiServerMCPClient
-from services.searchmcp import SearchMCP
+from ai.services.searchservice import SearchMCP
 import logging
 
 
