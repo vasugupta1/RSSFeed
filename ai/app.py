@@ -1,6 +1,4 @@
 import logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(levelname)s: %(message)s")
-
 import os
 from fastapi import FastAPI, HTTPException, status
 import uvicorn
@@ -21,6 +19,7 @@ from services.searchservice import SearchService
 
 from config.appconfiguration import AppConfiguration
 
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(levelname)s: %(message)s")
 config : AppConfiguration = AppConfiguration() # type: ignore[reportCallIssue]
 
 @asynccontextmanager
