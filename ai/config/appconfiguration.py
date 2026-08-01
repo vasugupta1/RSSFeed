@@ -1,4 +1,3 @@
-import os
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -13,6 +12,5 @@ class AppConfiguration(BaseSettings):
     VECTOR_DATBASE_URI: str = Field(..., validation_alias="RESSFEEDVECTORS_URI")
     EMBEDDING_MODEL: str = Field(..., validation_alias="EMBEDDINGS_MODEL")
     EMBEDDING_URI: str = Field(..., validation_alias="EMBEDDINGS_URI")
-    MCP_SERVER_URL: str = Field(..., validation_alias="MCP_SERVER_URL")
 
     model_config = SettingsConfigDict(extra="ignore")

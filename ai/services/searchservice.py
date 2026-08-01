@@ -5,26 +5,23 @@ from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
-
 class SearchResult(BaseModel):
     url: str = Field(description="The URL of the search result.")
     title: str = Field(description="The title of the search result.")
     snippet: str = Field(description="A short snippet or description of the search result.")
-
 
 class SearchService:
     def __init__(self) -> None:
         logger.info("SearchService initialised")
 
     def web_search(self, query: str, max_results: int = 5) -> List[SearchResult]:
-        limit = min(max_results, 10)
-        logger.info("Starting web search — query=%r, max_results=%d (capped to %d)", query, max_results, limit)
+        logger.info("Starting web search — query=%r max_results=%r", query, max_results)
 
         results: List[SearchResult] = []
 
         try:
             with DDGS() as ddgs:
-                raw_results = list(ddgs.text(query, max_results=limit))
+                raw_results = list(ddgs.text(query, max_results=max_results))
 
             logger.info("DuckDuckGo returned %d raw results", len(raw_results))
 

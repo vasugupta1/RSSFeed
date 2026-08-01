@@ -100,7 +100,6 @@ var ai = builder.AddUvicornApp(name: "rssfeedai", appDirectory: "../ai", app: "a
                     .WithReference(vectorDb)
                     .WithReference(messagingQueues)
                     .WithReference(embeddings)
-                    .WithEnvironment("MCP_SERVER_URL", pythonMcp.GetEndpoint("http"))
                     .WaitFor(mongodb)
                     .WaitFor(llm)
                     .WaitFor(embeddings)

@@ -1,7 +1,6 @@
 
 from services.articleontology import ArticleOntologyService
-from services.graphservice import GraphService
-from services.articleanalysis import ArticleAnalysis
+from repository.graphservice import GraphService
 import logging
 
 logger = logging.getLogger(__name__)

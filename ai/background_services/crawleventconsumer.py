@@ -1,11 +1,12 @@
-from services.messagingservice import MessagingService
+from messaging.messagingservice import MessagingService
 from pydantic import BaseModel, Field
-from typing import List, Dict, Any, cast
+from typing import List
 from services.crawl import Crawl
 from services.articleanalysis import RSSAnalyserService, ArticleAnalysis
 from asyncio.events import AbstractEventLoop
 from concurrent.futures import Future
-from services.embedding import EmbeddingService
+from repository.embedding import EmbeddingService
+from services.searchservice import SearchService
 import asyncio
 import logging
 
@@ -38,6 +39,7 @@ class CrawlEventConsumer:
         self.analyser = analyser
         self.loop = loop
         self.embedding_service = embedding
+        self.search_service: SearchService = SearchService()
 
     def _to_article_analysis_event(self, source: ArticleAnalysis, url: str) -> ArticleAnalysisEvent:
         return ArticleAnalysisEvent(
@@ -57,6 +59,25 @@ class CrawlEventConsumer:
         
         return metadata
 
+    async def _save_enrichment_content(self, key_words: List[str]) :
+        try:
+            logger.info("Calling DuckDuckGo Search")
+
+            enrichment_content = []
+
+            for word in key_words:
+                search_results = self.search_service.web_search(word)
+
+                for result in search_results:
+                    enrichment_content.append(await self.crawl.run(result.url))
+
+            for content in enrichment_content:
+                article_analysis: ArticleAnalysis = self.analyser.analyze_text(content)
+                self.embedding_service.generate_and_save_embedding(content, self._keywords_metadata(article_analysis))
+    
+        except Exception as e:
+            logger.error(f"FAILED during search enrichment: {type(e).__name__}: {e}", exc_info=True)
+
     async def _process_message(self, result: dict) -> None:
         try:
             logger.info("Processing crawl event: %s", result)
@@ -67,6 +88,9 @@ class CrawlEventConsumer:
         
             logger.info("Analysing crawled content for: %s", event.url)
             article_analysis: ArticleAnalysis = self.analyser.analyze_text(crawl_result)
+
+            logger.info("Saving Enrichement Content: %s", article_analysis.keywords)
+            await self._save_enrichment_content(article_analysis.keywords)
 
             logger.info("Generating and saving embeddings for crawl request")
             self.embedding_service.generate_and_save_embedding(crawl_result, self._keywords_metadata(article_analysis))

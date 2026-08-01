@@ -10,13 +10,14 @@ import threading
 import asyncio
 
 from services.crawl import Crawl
-from services.articleanalysis import RSSAnalyserService, ArticleAnalysis
+from services.articleanalysis import RSSAnalyserService
 from services.crawl import Crawl
 from services.articleontology import ArticleOntologyService
-from services.graphservice import GraphService
-from services.messagingservice import MessagingService
+from repository.graphservice import GraphService
+from messaging.messagingservice import MessagingService
 from background_services.crawleventconsumer import CrawlEventConsumer
-from services.embedding import EmbeddingService
+from repository.embedding import EmbeddingService
+from services.searchservice import SearchService
 
 from config.appconfiguration import AppConfiguration
 
@@ -35,7 +36,7 @@ async def lifespan(app: FastAPI):
     app.state.crawler_service = Crawl(shared_crawler)
     app.state.llm = RSSAnalyserService(url=config.LLM_URI, model=config.LLM_MODEL, config = {})
     app.state.embedding_service = EmbeddingService(model_uri= config.EMBEDDING_URI, model_name= config.EMBEDDING_MODEL, vector_store_connection_string= config.VECTOR_DATBASE_URI)
-    onotlogy : ArticleOntologyService = ArticleOntologyService(url=config.LLM_URI, model=config.LLM_MODEL, mcp_server_url= config.MCP_SERVER_URL,  config = {})
+    onotlogy : ArticleOntologyService = ArticleOntologyService(url=config.LLM_URI, model=config.LLM_MODEL, embedding= app.state.embedding_service)
     app.state.onotology = onotlogy
     graph_service = GraphService(uri = config.DATABASE_URI)
     app.state.graph_service = graph_service
@@ -77,38 +78,12 @@ def heartcheck():
 
     return {"status": "healthy", "checks": service_result} 
 
-
-@app.get("/api/crawl")
-async def crawl(url: str):
-    crawl_servie : Crawl = app.state.crawler_service
-    crawl_result : str = await crawl_servie.run(url)
-    llm :RSSAnalyserService = app.state.llm
-    article_analysis: ArticleAnalysis = llm.analyze_text(crawl_result)
-    # messanger: VectorEmbeddingMessanger = app.state.messaging_service
-    # messanger.publish(article_analysis.model_dump())
-    
-    return {"url": url, 
-            "title": article_analysis.title, 
-            "summary": article_analysis.summary, 
-            "keywords": article_analysis.keywords,
-            "country": article_analysis.country}
-
-@app.get("/api/test")
-async def test():
-    crawl_servie : Crawl = app.state.crawler_service
-    crawl_result : str = await crawl_servie.run("https://www.bbc.co.uk/news/articles/cy4ker2y1mko?at_medium=RSS&at_campaign=rss")
-    llm :RSSAnalyserService = app.state.llm
-    article_analysis: ArticleAnalysis = llm.analyze_text(crawl_result)
-    o_s : ArticleOntologyService = app.state.onotology
-    response = await o_s.extract_ontology(article_analysis.article_overview, article_analysis.keywords)
-    return response
-
-
 @app.get("/api/relationship")
-async def relationship(keyword: str, k : int):
-    test : EmbeddingService = app.state.embedding_service
-    reslt = test.search(keyword, k)
-    return {"test": reslt}
+async def relationship():
+    test : ArticleOntologyService = app.state.onotlogy
+    result =  await test.extract_ontology("fifa")
+    print(result)
+    return {"test": result}
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000)) 
