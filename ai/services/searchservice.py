@@ -1,7 +1,8 @@
 import logging
 from ddgs import DDGS
-from typing import List
+from typing import AsyncGenerator, Iterator, Any
 from pydantic import BaseModel, Field
+import asyncio
 
 logger = logging.getLogger(__name__)
 
@@ -14,16 +15,16 @@ class SearchService:
     def __init__(self) -> None:
         logger.info("SearchService initialised")
 
-    def web_search(self, query: str, max_results: int = 5) -> List[SearchResult]:
+    async def web_search(self, query: str, max_results: int = 5) -> AsyncGenerator[SearchResult]:
         logger.info("Starting web search — query=%r max_results=%r", query, max_results)
-
-        results: List[SearchResult] = []
-
+        yield_count = 0
         try:
-            with DDGS() as ddgs:
-                raw_results = list(ddgs.text(query, max_results=max_results))
+            def search() -> Iterator[dict[str, Any]]:
+                with DDGS() as ddgs:
+                    raw_results = ddgs.text(query, max_results=max_results)
+                    return raw_results
 
-            logger.info("DuckDuckGo returned %d raw results", len(raw_results))
+            raw_results = await asyncio.to_thread(search)
 
             for i, r in enumerate(raw_results):
                 url = r.get("href")
@@ -36,11 +37,12 @@ class SearchService:
 
                 url = url.strip()
                 result = SearchResult(url=url, title=title, snippet=snippet)
-                results.append(result)
                 logger.debug("Result[%d] accepted — url=%s, title=%r", i, url, title)
+                yield_count+=1
+                yield result
 
         except Exception as e:
             logger.error("Web search failed for query=%r: %s", query, e, exc_info=True)
 
-        logger.info("Web search complete — %d valid results returned for query=%r", len(results), query)
-        return results
+        logger.info("Web search complete — %d valid results returned for query=%r", yield_count, query)
+        return

@@ -118,4 +118,4 @@ langchain-text-splitters
 langchain-mcp-adapters
 langgraph
 langchain
-ddgs
+ddgs==9.14.4

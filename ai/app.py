@@ -8,6 +8,7 @@ import asyncio
 from services.articleontology import ArticleOntologyService
 from factories.servicefactory import ServiceContainerBuilder
 from config.appconfiguration import AppConfiguration
+from services.searchservice import SearchService
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(levelname)s: %(message)s")
 config : AppConfiguration = AppConfiguration() # type: ignore[reportCallIssue]
@@ -64,6 +65,15 @@ async def relationship():
     result =  await test.extract_ontology("fifa")
     print(result)
     return {"test": result}
+
+@app.get("/api/search")
+async def search():
+    container = app.state.container
+    search_service : SearchService = container.search_service
+    results = [result async for result in search_service.web_search("fifa")]
+    print(results)
+    return results
+    
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000)) 
