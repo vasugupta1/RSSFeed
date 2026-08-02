@@ -3,6 +3,7 @@ from langchain_postgres.vectorstores import PGVector
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from sqlalchemy import create_engine, text
+from typing import Generator
 
 class EmbeddingService:
 
@@ -29,13 +30,14 @@ class EmbeddingService:
         result = self.vector_store.add_texts(texts = chunks, metadatas= chunk_metadatas)
         return result
 
-    def search(self, search_query: str, k: int =  5) -> list[Document]:
-        results = self.vector_store.max_marginal_relevance_search(
+    def search(self, search_query: str, k: int =  5) -> Generator[Document]:
+        results = self.vector_store.similarity_search_with_relevance_scores(
                 search_query, 
                 k=k, 
-                fetch_k=20 
+                score_threshold = 0.5
             )
-        return results 
+        for doc, _ in results:
+            yield doc
 
     def can_connect(self) -> bool:
         try:

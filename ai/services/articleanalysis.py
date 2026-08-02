@@ -30,7 +30,7 @@ class ArticleAnalysis(BaseModel):
 
 class RSSAnalyserService:
 
-    def __init__(self, url:str, model:str, config:dict):
+    def __init__(self, url:str, model:str):
         self.llm = ChatOllama(model=model, base_url=url, temperature=0.0)
 
         self.structured_llm = self.llm.with_structured_output(
