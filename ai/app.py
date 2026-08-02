@@ -42,14 +42,15 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 @app.get("/healthcheck")
-def heartcheck():
+def healthcheck():
+    container = app.state.container
     service_result =  {}
-    service_result["graph_database"] = "healthy" if app.state.graph_service.can_connect() else "unhealthy"
-    service_result["crawl_event_queue"] = "healthy" if  app.state.crawl_event_messaging.can_connect() else "unhealthy"
-    service_result["crawl_result_event_queue"] = "healthy" if  app.state.crawl_event_result_messaging.can_connect() else "unhealthy"
-    service_result["vector_embedding_database"] = "healthy" if  app.state.embedding_service.can_connect() else "unhealthy"
+    service_result["graph_database"] = "healthy" if container.graph_service.can_connect() else "unhealthy"
+    service_result["crawl_event_queue"] = "healthy" if container.crawl_event_messaging.can_connect() else "unhealthy"
+    service_result["crawl_result_event_queue"] = "healthy" if container.crawl_event_result_messaging.can_connect() else "unhealthy"
+    service_result["vector_embedding_database"] = "healthy" if container.embedding_service.can_connect() else "unhealthy"
 
-    if False in service_result.values():
+    if "unhealthy" in service_result.values():
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail={"status": "unhealthy", "checks": service_result}
