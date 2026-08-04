@@ -94,7 +94,7 @@ class CrawlEventConsumer:
             
             analysis_event = self._to_article_analysis_event(article_analysis, event.url)
             logger.info("Publishing analysis result for: %s", event.url)
-            self.crawl_result_event_messaging.publish(analysis_event.model_dump())
+            self.crawl_result_event_messaging.publish_to_exchange(analysis_event.model_dump())
 
             logger.info("Successfully processed crawl event for: %s", event.url)
         except Exception as e:

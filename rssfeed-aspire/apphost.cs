@@ -16,6 +16,7 @@ var articleCrawlExchange = "rssfeed-article-crawl-exchange";
 var articleCrawlEvent = "rssfeed-article-crawl-event";
 var articleCrawlResultEvent = "rssfeed-article-crawl-result-event";
 var articleOntologyEvent = "rssfeed-article-ontology-event";
+var articleResearchEvent = "rssfeed-article-research-event";
 
 var username = builder.AddParameter("rmq-user", "guest");
 var password = builder.AddParameter("rmq-pwd", "guest");
@@ -30,7 +31,7 @@ var queueMigration = AddRabitMqQueueInit(
     messagingQueues, 
     username, 
     password, 
-    articleCrawlResultEvent
+    articleCrawlEvent
 );
 
 var pubSubMigration = AddRabbitMqPubSubInit(
@@ -39,7 +40,7 @@ var pubSubMigration = AddRabbitMqPubSubInit(
     username, 
     password, 
     articleCrawlExchange,
-    [articleCrawlEvent,  articleOntologyEvent]
+    [articleCrawlResultEvent, articleOntologyEvent, articleResearchEvent]
 );
 //#####################Database################################
 
@@ -100,7 +101,7 @@ var embeddings = ollama.AddModel("embeddings", "nomic-embed-text");
 var ai = builder.AddUvicornApp(name: "rssfeedai", appDirectory: "../ai", app: "app:app")
                     .WithEnvironment("RABBITMQ_ONTOLOOGY_QUEUE", articleOntologyEvent)
                     .WithEnvironment("RABBITMQ_CRAWL_QUEUE", articleCrawlEvent)
-                    .WithEnvironment("RABBITMQ_CRAWL_RESULT_QUEUE", articleCrawlResultEvent)
+                    .WithEnvironment("RABBITMQ_CRAWL_EXCHANGE", articleCrawlExchange)
                     .WithReference(mongodb)
                     .WithReference(llm)
                     .WithReference(ollama)
@@ -123,7 +124,7 @@ var rssfeedwebapp = builder
                     .AddGolangApp("rssfeedwebapp", "../backend/cmd/server")
                     .WithHttpEndpoint(env: "PORT", port: 8002)
                     .WithHttpHealthCheck("/api/healthcheck")
-                    .WithEnvironment("RABBITMQ_CRAWL_EXCHANGE", articleCrawlExchange)
+                    .WithEnvironment("RABBITMQ_CRAWL_CRAWL_QUEUE", articleCrawlEvent)
                     .WithEnvironment("RABBITMQ_CRAWL_RESULT_QUEUE", articleCrawlResultEvent)
                     .WithReference(mongodb)
                     .WithReference(ai)

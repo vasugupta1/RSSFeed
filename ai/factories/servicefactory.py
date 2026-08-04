@@ -72,11 +72,13 @@ class ServiceContainerBuilder:
         """Step 2: Initialize messaging services."""
         self._container.crawl_event_messaging = MessagingService(
             uri = self.config.MESSAGING_URI, 
-            queue_name= self.config.CRAWL_QUEUE
+            queue_name= self.config.CRAWL_QUEUE,
+            exchange_name= None
         )
         self._container.crawl_event_result_messaging = MessagingService(
             uri = self.config.MESSAGING_URI, 
-            queue_name= self.config.CRAWL_RESULT_QUEUE
+            queue_name= None,
+            exchange_name= self.config.CRAWL_RESULT_EXCHANGE
         )
         return self
 

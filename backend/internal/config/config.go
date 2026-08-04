@@ -9,7 +9,7 @@ type APIConfiguration struct {
 	DatabaseName              string
 	CollectionNames           []string
 	ApiRateLimitValue         int
-	CrawlEventExchange        string
+	CrawlEventQueueName       string
 	CrawlEventResultQueueName string
 	PublishingChannelUri      string
 	RSSFeedRefreshDurationMin int
@@ -23,7 +23,7 @@ func Load() APIConfiguration {
 		DatabaseName:              "rssfeedurl",
 		CollectionNames:           []string{"feedurl", "feedarticle"},
 		ApiRateLimitValue:         5,
-		CrawlEventExchange:        GetEnv("RABBITMQ_CRAWL_EXCHANGE", "rssfeed-article-crawl-exchange"),
+		CrawlEventQueueName:       GetEnv("RABBITMQ_CRAWL_CRAWL_QUEUE", "rssfeed-article-crawl-event"),
 		CrawlEventResultQueueName: GetEnv("RABBITMQ_CRAWL_RESULT_QUEUE", "rssfeed-article-crawl-result-event"),
 		PublishingChannelUri:      GetEnv("MESSAGING_URI", ""),
 		RSSFeedRefreshDurationMin: 60,
