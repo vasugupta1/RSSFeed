@@ -55,7 +55,7 @@ func main() {
 		}
 	}()
 
-	articleCrawlPublisher := messaging.NewEventPublisher[event.CrawlArticleEvent](conn, cfg.CrawlEventQueueName)
+	articleCrawlPublisher := messaging.NewEventPublisher[event.CrawlArticleEvent](conn, cfg.CrawlEventExchange)
 	articleCrawlResultconsumer := messaging.NewEventConsumer[models.ArticleSummary](conn, cfg.CrawlEventResultQueueName, "bff")
 
 	// Initialize clients

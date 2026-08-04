@@ -65,11 +65,8 @@ class CrawlEventConsumer:
 
             enrichment_content = []
 
-            for word in key_words:
-                search_results = self.search_service.web_search(word)
-
-                for result in search_results:
-                    enrichment_content.append(await self.crawl.run(result.url))
+            async for search_result in self.search_service.web_search_keywords(key_words):
+                    enrichment_content.append(await self.crawl.run(search_result.url))
 
             for content in enrichment_content:
                 article_analysis: ArticleAnalysis = self.analyser.analyze_text(content)
@@ -89,8 +86,8 @@ class CrawlEventConsumer:
             logger.info("Analysing crawled content for: %s", event.url)
             article_analysis: ArticleAnalysis = self.analyser.analyze_text(crawl_result)
 
-            logger.info("Saving Enrichement Content: %s", article_analysis.keywords)
-            await self._save_enrichment_content(article_analysis.keywords)
+            # logger.info("Saving Enrichement Content: %s", article_analysis.keywords)
+            # await self._save_enrichment_content(article_analysis.keywords)
 
             logger.info("Generating and saving embeddings for crawl request")
             self.embedding_service.generate_and_save_embedding(crawl_result, self._keywords_metadata(article_analysis))

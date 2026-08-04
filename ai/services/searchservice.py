@@ -1,6 +1,6 @@
 import logging
 from ddgs import DDGS
-from typing import AsyncGenerator, Iterator, Any
+from typing import AsyncGenerator, Iterator, Any, List
 from pydantic import BaseModel, Field
 import asyncio
 
@@ -15,6 +15,16 @@ class SearchService:
     def __init__(self) -> None:
         logger.info("SearchService initialised")
 
+    async def web_search_keywords(self, key_words: List[str], max_results : int = 5) -> AsyncGenerator[SearchResult]:
+        async def _collect(word:str) -> List[SearchResult]:
+            return [res async for res in self.web_search(word, max_results=max_results)]
+
+        nested_search_results = await asyncio.gather(*[_collect(word) for word in key_words])
+
+        for result_list in nested_search_results:
+            for result in result_list:
+                yield result
+    
     async def web_search(self, query: str, max_results: int = 5) -> AsyncGenerator[SearchResult]:
         logger.info("Starting web search — query=%r max_results=%r", query, max_results)
         yield_count = 0

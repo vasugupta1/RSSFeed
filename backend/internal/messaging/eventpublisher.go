@@ -10,14 +10,14 @@ import (
 )
 
 type EventPublisher[T any] struct {
-	connection *amqp.Connection
-	queueName  string
+	connection   *amqp.Connection
+	exchangeName string
 }
 
-func NewEventPublisher[T any](connection *amqp.Connection, queueName string) *EventPublisher[T] {
+func NewEventPublisher[T any](connection *amqp.Connection, exchangeName string) *EventPublisher[T] {
 	return &EventPublisher[T]{
-		connection: connection,
-		queueName:  queueName,
+		connection:   connection,
+		exchangeName: exchangeName,
 	}
 }
 
@@ -46,15 +46,15 @@ func (p *EventPublisher[T]) PublishEvent(ctx context.Context, body T) error {
 	}
 
 	event := amqp.Publishing{
-		ContentType:  "",
+		ContentType:  "application/json",
 		DeliveryMode: amqp.Persistent,
 		Body:         bytes,
 	}
 
-	err = messagingChannel.PublishWithContext(cctx, "", p.queueName, false, false, event)
+	err = messagingChannel.PublishWithContext(cctx, p.exchangeName, "", false, false, event)
 
 	if err != nil {
-		slog.Error("Failed to publish event over channel", "err", err)
+		slog.Error("Failed to publish event over exchange channel", "err", err)
 		return err
 	}
 

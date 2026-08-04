@@ -11,8 +11,8 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-
 //###################Messasging################################
+var articleCrawlExchange = "rssfeed-article-crawl-exchange";
 var articleCrawlEvent = "rssfeed-article-crawl-event";
 var articleCrawlResultEvent = "rssfeed-article-crawl-result-event";
 var articleOntologyEvent = "rssfeed-article-ontology-event";
@@ -25,12 +25,21 @@ var messagingQueues = builder
                         .WithLifetime(ContainerLifetime.Persistent)
                         .WithManagementPlugin();
 
-var messagingMigration = AddRabitMqQueueInit(
+var queueMigration = AddRabitMqQueueInit(
     builder, 
     messagingQueues, 
     username, 
     password, 
-    articleCrawlEvent, articleCrawlResultEvent,  articleOntologyEvent
+    articleCrawlResultEvent
+);
+
+var pubSubMigration = AddRabbitMqPubSubInit(
+    builder, 
+    messagingQueues, 
+    username, 
+    password, 
+    articleCrawlExchange,
+    [articleCrawlEvent,  articleOntologyEvent]
 );
 //#####################Database################################
 
@@ -114,7 +123,7 @@ var rssfeedwebapp = builder
                     .AddGolangApp("rssfeedwebapp", "../backend/cmd/server")
                     .WithHttpEndpoint(env: "PORT", port: 8002)
                     .WithHttpHealthCheck("/api/healthcheck")
-                    .WithEnvironment("RABBITMQ_CRAWL_QUEUE", articleCrawlEvent)
+                    .WithEnvironment("RABBITMQ_CRAWL_EXCHANGE", articleCrawlExchange)
                     .WithEnvironment("RABBITMQ_CRAWL_RESULT_QUEUE", articleCrawlResultEvent)
                     .WithReference(mongodb)
                     .WithReference(ai)
@@ -131,7 +140,7 @@ var frontendservice = builder.AddViteApp(name: "rssfeedfrontend", appDirectory: 
 builder.Build().Run();
 
 
-//Used to create queues, quicky easy way to get it up and running
+// Used to create queues, quicky easy way to get it up and running
 static IResourceBuilder<ContainerResource> AddRabitMqQueueInit(IDistributedApplicationBuilder builder,
     IResourceBuilder<RabbitMQServerResource> rabbitMq,
     IResourceBuilder<ParameterResource> userParam,
@@ -152,5 +161,51 @@ static IResourceBuilder<ContainerResource> AddRabitMqQueueInit(IDistributedAppli
         .WithEnvironment("RMQ_PWD", pwdParam)
         .WithArgs("-c", inlineScript)
         .WithEntrypoint("sh") 
+        .WaitFor(rabbitMq);
+}
+
+static IResourceBuilder<ContainerResource> AddRabbitMqPubSubInit(
+    IDistributedApplicationBuilder builder,
+    IResourceBuilder<RabbitMQServerResource> rabbitMq,
+    IResourceBuilder<ParameterResource> userParam,
+    IResourceBuilder<ParameterResource> pwdParam,
+    string exchangeName,
+    string[] queues)
+{
+    var commands = new List<string>();
+
+    // 1. Declare the Fanout Exchange (Pub/Sub hub)
+    commands.Add(
+        $"curl -s -u \"$RMQ_USER:$RMQ_PWD\" -X PUT -H \"Content-Type: application/json\" " +
+        $"-d '{{\"type\":\"fanout\",\"durable\":true,\"auto_delete\":false}}' " +
+        $"http://messaging:15672/api/exchanges/%2F/{exchangeName}"
+    );
+
+    // 2. Declare each Queue and Bind it to the Exchange
+    foreach (var queue in queues)
+    {
+        // Declare Queue
+        commands.Add(
+            $"curl -s -u \"$RMQ_USER:$RMQ_PWD\" -X PUT -H \"Content-Type: application/json\" " +
+            $"-d '{{\"durable\":true,\"auto_delete\":false}}' " +
+            $"http://messaging:15672/api/queues/%2F/{queue}"
+        );
+
+        // Bind Queue to Exchange
+        commands.Add(
+            $"curl -s -u \"$RMQ_USER:$RMQ_PWD\" -X POST -H \"Content-Type: application/json\" " +
+            $"-d '{{\"routing_key\":\"\"}}' " +
+            $"http://messaging:15672/api/bindings/%2F/e/{exchangeName}/q/{queue}"
+        );
+    }
+
+    var inlineScript = string.Join(" && ", commands);
+
+    return builder.AddContainer("messaging-pubsub-init", "alpine/curl")
+        .WithReference(rabbitMq)
+        .WithEnvironment("RMQ_USER", userParam)
+        .WithEnvironment("RMQ_PWD", pwdParam)
+        .WithArgs("-c", inlineScript)
+        .WithEntrypoint("sh")
         .WaitFor(rabbitMq);
 }
