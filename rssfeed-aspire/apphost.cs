@@ -100,6 +100,7 @@ var llm = ollama.AddModel("llm", "llama3.1");
 var embeddings = ollama.AddModel("embeddings", "nomic-embed-text");
 var ai = builder.AddUvicornApp(name: "rssfeedai", appDirectory: "../ai", app: "app:app")
                     .WithEnvironment("RABBITMQ_ONTOLOOGY_QUEUE", articleOntologyEvent)
+                    .WithEnvironment("RABITMQ_CRAWL_RESEARCH_QUEUE", articleResearchEvent)
                     .WithEnvironment("RABBITMQ_CRAWL_QUEUE", articleCrawlEvent)
                     .WithEnvironment("RABBITMQ_CRAWL_EXCHANGE", articleCrawlExchange)
                     .WithReference(mongodb)

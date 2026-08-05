@@ -23,6 +23,7 @@ async def lifespan(app: FastAPI):
         builder.build_messaging()
                .build_domain_services()
                .build_crawl_event_background_service(loop)
+               .build_crawl_research_event_background_service(loop)
                .build()
     )
     container.attach_to_app(app)
@@ -35,6 +36,14 @@ async def lifespan(app: FastAPI):
             daemon=True
         )
         consumer_thread.start()
+
+    research_event_consume = None
+    if container.crawl_research_event_consumer:
+        research_event_consume = threading.Thread(
+            target = container.crawl_research_event_consumer.run_consumer,
+            daemon= True
+        )
+        research_event_consume.start()
 
     yield
 

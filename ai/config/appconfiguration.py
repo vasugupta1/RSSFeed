@@ -12,5 +12,6 @@ class AppConfiguration(BaseSettings):
     VECTOR_DATBASE_URI: str = Field(..., validation_alias="RESSFEEDVECTORS_URI")
     EMBEDDING_MODEL: str = Field(..., validation_alias="EMBEDDINGS_MODEL")
     EMBEDDING_URI: str = Field(..., validation_alias="EMBEDDINGS_URI")
+    CRAWL_RESEARCH_EVENT_QUEUE : str = Field(..., validation_alias="RABITMQ_CRAWL_RESEARCH_QUEUE")
 
     model_config = SettingsConfigDict(extra="ignore")

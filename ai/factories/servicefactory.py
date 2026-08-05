@@ -10,6 +10,7 @@ from messaging.messagingservice import MessagingService
 from background_services.crawleventconsumer import CrawlEventConsumer
 from repository.embedding import EmbeddingService
 from services.searchservice import SearchService
+from background_services.crawlresearcheventconsumer import CrawlResearchEventConsumer
 import asyncio
 
 class ServiceContainer:
@@ -25,6 +26,8 @@ class ServiceContainer:
         self.crawl_event_messaging: MessagingService | None = None
         self.crawl_event_result_messaging: MessagingService | None = None
         self.crawl_event_consumer: CrawlEventConsumer | None = None
+        self.crawl_research_event_messaging: MessagingService | None  = None
+        self.crawl_research_event_consumer: CrawlResearchEventConsumer | None = None
 
     def attach_to_app(self, app: FastAPI):
         """Binds initialized services into app.state."""
@@ -38,6 +41,8 @@ class ServiceContainer:
         app.state.crawl_event_messaging = self.crawl_event_messaging
         app.state.crawl_event_result_messaging = self.crawl_event_result_messaging
         app.state.crawl_event_consumer = self.crawl_event_consumer
+        app.state.crawl_research_event_messaging = self.crawl_research_event_messaging
+        app.state.crawl_research_event_consumer = self.crawl_research_event_consumer
 
     async def cleanup(self):
         """Gracefully close open resources on shutdown."""
@@ -80,6 +85,13 @@ class ServiceContainerBuilder:
             queue_name= None,
             exchange_name= self.config.CRAWL_RESULT_EXCHANGE
         )
+
+        self._container.crawl_research_event_messaging = MessagingService(
+            uri = self.config.MESSAGING_URI, 
+            queue_name= self.config.CRAWL_RESEARCH_EVENT_QUEUE,
+            exchange_name= None
+        )
+
         return self
 
     def build_domain_services(self) -> "ServiceContainerBuilder":
@@ -122,6 +134,27 @@ class ServiceContainerBuilder:
             embedding = self._container.embedding_service,
             loop = loop
         )
+
+        return self
+
+
+    def build_crawl_research_event_background_service(self, loop: asyncio.AbstractEventLoop) -> "ServiceContainerBuilder":
+        if not (self._container.crawl_research_event_messaging 
+                        and self._container.crawler_service 
+                        and self._container.rss_analyser_service 
+                        and self._container.embedding_service):
+                    raise RuntimeError(
+                        "Cannot build CrawlEventConsumer: Messaging, Crawler, RSS Analyser, "
+                        "and Embedding services must be initialized first."
+                    )
+                
+        self._container.crawl_research_event_consumer = CrawlResearchEventConsumer(
+                    crawl_research_event_messaging = self._container.crawl_research_event_messaging,
+                    crawl =  self._container.crawler_service,
+                    analyser = self._container.rss_analyser_service ,
+                    embedding = self._container.embedding_service,
+                    loop = loop
+                )
 
         return self
 
