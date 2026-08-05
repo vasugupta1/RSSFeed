@@ -15,7 +15,7 @@ class SearchService:
     def __init__(self) -> None:
         logger.info("SearchService initialised")
 
-    async def web_search_keywords(self, key_words: List[str], max_results : int = 5) -> AsyncGenerator[SearchResult]:
+    async def web_search_keywords(self, key_words: List[str], max_results : int = 1) -> AsyncGenerator[SearchResult]:
         async def _collect(word:str) -> List[SearchResult]:
             return [res async for res in self.web_search(word, max_results=max_results)]
 
@@ -25,7 +25,7 @@ class SearchService:
             for result in result_list:
                 yield result
     
-    async def web_search(self, query: str, max_results: int = 5) -> AsyncGenerator[SearchResult]:
+    async def web_search(self, query: str, max_results: int = 1) -> AsyncGenerator[SearchResult]:
         logger.info("Starting web search — query=%r max_results=%r", query, max_results)
         yield_count = 0
         try:

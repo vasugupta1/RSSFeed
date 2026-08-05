@@ -24,7 +24,7 @@ var messagingQueues = builder
                         .AddRabbitMQ("messaging", userName: username, password: password)
                         .WithDataVolume("rssfeed-queue-data")
                         .WithLifetime(ContainerLifetime.Persistent)
-                        .WithManagementPlugin();
+                        .WithManagementPlugin(15672);
 
 var queueMigration = AddRabitMqQueueInit(
     builder, 
