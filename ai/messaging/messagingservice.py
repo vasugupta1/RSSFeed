@@ -122,7 +122,7 @@ class MessagingService:
                     ch.basic_ack(delivery_tag=method.delivery_tag)
                 except Exception as eval_error:
                     print(f"Error processing message: {eval_error}")
-                    ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
+                    ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
             
             channel.basic_qos(prefetch_count=1)
             channel.basic_consume(queue=self.queue_name, on_message_callback=pika_callback)

@@ -1,5 +1,4 @@
 from messaging.messagingservice import MessagingService
-from pydantic import BaseModel, Field
 from typing import List
 from services.crawl import Crawl
 from services.articleanalysis import RSSAnalyserService, ArticleAnalysis
@@ -42,7 +41,9 @@ class CrawlResearchEventConsumer:
 
             enrichment_content = []
 
-            async for search_result in self.search_service.web_search_keywords(key_words):
+            query = ' '.join(key_words)
+            logger.info("Calling DDG for: %s", query)
+            async for search_result in self.search_service.web_search(query=query, max_results= 5):
                     enrichment_content.append(await self.crawl.run(search_result.url))
 
             for content in enrichment_content:
@@ -62,21 +63,19 @@ class CrawlResearchEventConsumer:
             
             logger.info("Successfully processed crawl rsearch event for: %s", event.url)
         except Exception as e:
-            logger.error("Failed to process crawl event: %s", e, exc_info=True)
-            raise
+            logger.error("Failed to process research crawl event: %s", e, exc_info=True)
 
 
     def _sync_callback(self, result: dict) -> None:
         """Bridge: schedules the async work on the main event loop and blocks until it completes."""
         try:
             future: Future = asyncio.run_coroutine_threadsafe(self._process_message(result), self.loop)
-            future.result(timeout=300)
+            future.result()
         except TimeoutError:
             logger.error("Processing timed out after 300 for message: %s", result)
             raise
         except Exception as e:
             logger.error("Error in sync callback bridge: %s", e, exc_info=True)
-            raise
 
 
     def run_consumer(self):
@@ -89,4 +88,4 @@ class CrawlResearchEventConsumer:
             else:
                 logger.error("[Worker Thread] CRITICAL: Could not connect crawl research event queue to RabbitMQ.")
         except Exception as e:
-            logger.error("[Worker Thread] Unexpected error in run_consumer: %s", e, exc_info=True)
+            logger.error("[Worker Thread] Unexpected error in research consumer: %s", e, exc_info=True)

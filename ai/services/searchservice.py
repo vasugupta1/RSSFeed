@@ -2,9 +2,17 @@ import logging
 from ddgs import DDGS
 from typing import AsyncGenerator, Iterator, Any, List
 from pydantic import BaseModel, Field
+from urllib.parse import urlparse
 import asyncio
 
 logger = logging.getLogger(__name__)
+
+BLOCKED_DOMAINS = {
+    "youtube.com",
+    "www.youtube.com",
+    "m.youtube.com",
+    "youtu.be",
+}
 
 class SearchResult(BaseModel):
     url: str = Field(description="The URL of the search result.")
@@ -46,6 +54,12 @@ class SearchService:
                     continue
 
                 url = url.strip()
+
+                domain = urlparse(url).hostname or ""
+                if domain in BLOCKED_DOMAINS:
+                    logger.info("Result[%d] skipped — blocked domain %s: %s", i, domain, url)
+                    continue
+
                 result = SearchResult(url=url, title=title, snippet=snippet)
                 logger.debug("Result[%d] accepted — url=%s, title=%r", i, url, title)
                 yield_count+=1

@@ -40,9 +40,10 @@ class Crawl:
             markdown_generator=md_generator,
             exclude_all_images=True,
             remove_overlay_elements=True,
-            wait_until="networkidle",
+            wait_until="domcontentloaded",
             delay_before_return_html=2.0,
-            magic=True
+            magic=False,
+            remove_consent_popups=True
         )
         return config
     
@@ -58,7 +59,8 @@ class Crawl:
                 markdown_generator=DefaultMarkdownGenerator(),
                 css_selector="article, main, #main-content",
                 excluded_tags=['nav', 'footer', 'header', 'aside', 'form', 'script', 'style'],
-                cache_mode=CacheMode.BYPASS
+                cache_mode=CacheMode.BYPASS,
+                wait_for="css:article, main, .story-body"
             )
 
             result = await self.crawler.arun(
