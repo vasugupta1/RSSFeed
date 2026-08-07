@@ -40,10 +40,8 @@ class CrawlResearchEventConsumer:
             logger.info("Calling DuckDuckGo Search")
 
             enrichment_content = []
-
-            query = ' '.join(key_words)
-            logger.info("Calling DDG for: %s", query)
-            async for search_result in self.search_service.web_search(query=query, max_results= 5):
+            
+            async for search_result in self.search_service.web_search_keywords(key_words= key_words, max_results= 5):
                     enrichment_content.append(await self.crawl.run(search_result.url))
 
             for content in enrichment_content:
