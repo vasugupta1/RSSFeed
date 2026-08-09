@@ -1,7 +1,7 @@
 from messaging.messagingservice import MessagingService
 from pydantic import BaseModel, Field
 from typing import List
-from services.crawl import Crawl
+from services.crawlpipeline import CrawlPipeline
 from services.articleanalysis import RSSAnalyserService, ArticleAnalysis
 from asyncio.events import AbstractEventLoop
 from concurrent.futures import Future
@@ -29,13 +29,13 @@ class CrawlEventConsumer:
     def __init__(self, 
                 crawl_event_messaging: MessagingService,
                 crawl_result_event_messaging: MessagingService,
-                crawl: Crawl,
+                crawl_pipeline: CrawlPipeline,
                 analyser: RSSAnalyserService,
                 embedding: EmbeddingService,
                 loop: AbstractEventLoop):
         self.crawl_event_messaging = crawl_event_messaging
         self.crawl_result_event_messaging = crawl_result_event_messaging
-        self.crawl = crawl
+        self.crawl_pipeline = crawl_pipeline
         self.analyser = analyser
         self.loop = loop
         self.embedding_service = embedding
@@ -66,7 +66,9 @@ class CrawlEventConsumer:
             enrichment_content = []
 
             async for search_result in self.search_service.web_search_keywords(key_words):
-                    enrichment_content.append(await self.crawl.run(search_result.url))
+                    result = await self.crawl_pipeline.run(search_result.url)
+                    if result != "" or result != None:
+                        enrichment_content.append(result.cleaned_markdown)
 
             for content in enrichment_content:
                 article_analysis: ArticleAnalysis = self.analyser.analyze_text(content)
@@ -81,16 +83,18 @@ class CrawlEventConsumer:
             event = CrawlEvent.model_validate(result)
             
             logger.info("Crawling url: %s", event.url)
-            crawl_result : str = await self.crawl.run(event.url)
+
+            crawl_result = await self.crawl_pipeline.run(event.url)
+            crawl_result_md = crawl_result.cleaned_markdown
         
             logger.info("Analysing crawled content for: %s", event.url)
-            article_analysis: ArticleAnalysis = self.analyser.analyze_text(crawl_result)
+            article_analysis: ArticleAnalysis = self.analyser.analyze_text(crawl_result_md)
 
             # logger.info("Saving Enrichement Content: %s", article_analysis.keywords)
             # await self._save_enrichment_content(article_analysis.keywords)
 
             logger.info("Generating and saving embeddings for crawl request")
-            self.embedding_service.generate_and_save_embedding(crawl_result, self._keywords_metadata(article_analysis))
+            self.embedding_service.generate_and_save_embedding(crawl_result_md, self._keywords_metadata(article_analysis))
             
             analysis_event = self._to_article_analysis_event(article_analysis, event.url)
             logger.info("Publishing analysis result for: %s", event.url)

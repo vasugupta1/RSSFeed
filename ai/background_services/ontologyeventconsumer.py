@@ -8,7 +8,6 @@ from asyncio import Future
 from messaging.messagingservice import MessagingService
 from pydantic import BaseModel, Field
 from typing import List
-from services.crawl import Crawl
 from services.articleanalysis import RSSAnalyserService, ArticleAnalysis
 from asyncio.events import AbstractEventLoop
 from concurrent.futures import Future

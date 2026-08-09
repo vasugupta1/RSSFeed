@@ -1,9 +1,7 @@
 from fastapi import FastAPI
 from config.appconfiguration import AppConfiguration
 from crawl4ai import AsyncWebCrawler, BrowserConfig
-from services.crawl import Crawl
 from services.articleanalysis import RSSAnalyserService
-from services.crawl import Crawl
 from services.articleontology import ArticleOntologyService
 from repository.graphservice import GraphService
 from messaging.messagingservice import MessagingService
@@ -11,13 +9,14 @@ from background_services.crawleventconsumer import CrawlEventConsumer
 from repository.embedding import EmbeddingService
 from services.searchservice import SearchService
 from background_services.crawlresearcheventconsumer import CrawlResearchEventConsumer
+from services.crawlpipeline import CrawlPipeline
 import asyncio
 
 class ServiceContainer:
     """Holds all initialized service singletons."""
     def __init__(self):
         self.async_crawler: AsyncWebCrawler | None = None
-        self.crawler_service: Crawl | None = None
+        self.crawl_pipeline: CrawlPipeline | None = None
         self.rss_analyser_service: RSSAnalyserService | None = None
         self.embedding_service: EmbeddingService | None = None
         self.ontology_service: ArticleOntologyService | None = None
@@ -32,7 +31,7 @@ class ServiceContainer:
     def attach_to_app(self, app: FastAPI):
         """Binds initialized services into app.state."""
         app.state.async_crawler = self.async_crawler
-        app.state.crawler_service = self.crawler_service
+        app.state.crawl_pipeline = self.crawl_pipeline
         app.state.rss_analyser_service = self.rss_analyser_service
         app.state.embedding_service = self.embedding_service
         app.state.ontology_service = self.ontology_service
@@ -99,9 +98,8 @@ class ServiceContainerBuilder:
         if not self._container.async_crawler or not self._container.graph_service or not self._container.embedding_service:
             raise RuntimeError("Infrastructure services must be built prior to domain services.")
 
-        self._container.crawler_service = Crawl(
-            crawler=self._container.async_crawler
-        )
+        self._container.crawl_pipeline = CrawlPipeline(crawler=self._container.async_crawler)
+
         self._container.rss_analyser_service = RSSAnalyserService(
             url= self.config.LLM_URI, 
             model= self.config.LLM_MODEL)
@@ -118,7 +116,7 @@ class ServiceContainerBuilder:
 
         if not (self._container.crawl_event_messaging 
                 and self._container.crawl_event_result_messaging 
-                and self._container.crawler_service 
+                and self._container.crawl_pipeline 
                 and self._container.rss_analyser_service 
                 and self._container.embedding_service):
             raise RuntimeError(
@@ -129,7 +127,7 @@ class ServiceContainerBuilder:
         self._container.crawl_event_consumer = CrawlEventConsumer(
             crawl_event_messaging = self._container.crawl_event_messaging,
             crawl_result_event_messaging =  self._container.crawl_event_result_messaging,
-            crawl =  self._container.crawler_service,
+            crawl_pipeline = self._container.crawl_pipeline,
             analyser = self._container.rss_analyser_service ,
             embedding = self._container.embedding_service,
             loop = loop
@@ -140,7 +138,7 @@ class ServiceContainerBuilder:
 
     def build_crawl_research_event_background_service(self, loop: asyncio.AbstractEventLoop) -> "ServiceContainerBuilder":
         if not (self._container.crawl_research_event_messaging 
-                        and self._container.crawler_service 
+                        and self._container.crawl_pipeline 
                         and self._container.rss_analyser_service 
                         and self._container.embedding_service):
                     raise RuntimeError(
@@ -150,7 +148,7 @@ class ServiceContainerBuilder:
                 
         self._container.crawl_research_event_consumer = CrawlResearchEventConsumer(
                     crawl_research_event_messaging = self._container.crawl_research_event_messaging,
-                    crawl =  self._container.crawler_service,
+                    crawl_pipeline =  self._container.crawl_pipeline,
                     analyser = self._container.rss_analyser_service ,
                     embedding = self._container.embedding_service,
                     loop = loop

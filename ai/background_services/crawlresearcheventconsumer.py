@@ -1,6 +1,5 @@
 from messaging.messagingservice import MessagingService
 from typing import List
-from services.crawl import Crawl
 from services.articleanalysis import RSSAnalyserService, ArticleAnalysis
 from asyncio.events import AbstractEventLoop
 from concurrent.futures import Future
@@ -9,18 +8,19 @@ from services.searchservice import SearchService
 import asyncio
 import logging
 from background_services.crawleventconsumer import ArticleAnalysisEvent
+from services.crawlpipeline import CrawlPipeline
 
 logger = logging.getLogger(__name__)
 
 class CrawlResearchEventConsumer:
     def __init__(self, 
                 crawl_research_event_messaging: MessagingService,
-                crawl: Crawl,
+                crawl_pipeline: CrawlPipeline,
                 analyser: RSSAnalyserService,
                 embedding: EmbeddingService,
                 loop: AbstractEventLoop):
         self.crawl_research_event_messaging = crawl_research_event_messaging
-        self.crawl = crawl
+        self.crawl_pipeline = crawl_pipeline
         self.analyser = analyser
         self.loop = loop
         self.embedding_service = embedding
@@ -42,7 +42,9 @@ class CrawlResearchEventConsumer:
             enrichment_content = []
             
             async for search_result in self.search_service.web_search_keywords(key_words= key_words, max_results= 5):
-                    enrichment_content.append(await self.crawl.run(search_result.url))
+                    crawl_result = await self.crawl_pipeline.run(search_result.url)
+                    if crawl_result.cleaned_markdown != "" or crawl_result.cleaned_markdown != None:
+                        enrichment_content.append(crawl_result.cleaned_markdown)
 
             for content in enrichment_content:
                 article_analysis: ArticleAnalysis = self.analyser.analyze_text(content)
