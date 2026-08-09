@@ -119,3 +119,4 @@ langchain-mcp-adapters
 langgraph
 langchain
 ddgs==9.14.4
+Trafilatura

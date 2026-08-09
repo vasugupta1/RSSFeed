@@ -9,6 +9,7 @@ from services.articleontology import ArticleOntologyService
 from factories.servicefactory import ServiceContainerBuilder
 from config.appconfiguration import AppConfiguration
 from services.searchservice import SearchService
+from services.crawlpipeline import CrawlPipeline
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(levelname)s: %(message)s")
 config : AppConfiguration = AppConfiguration() # type: ignore[reportCallIssue]
@@ -82,6 +83,16 @@ async def search():
     results = [result async for result in search_service.web_search("fifa")]
     print(results)
     return results
+
+
+@app.get("/api/extract")
+async def search():
+    crawler = app.state.async_crawler
+    service = CrawlPipeline(crawler=crawler)
+    result = await service.run("https://seg6.space/posts/phone-server")
+    return result
+
+
     
 
 if __name__ == "__main__":
