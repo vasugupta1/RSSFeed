@@ -18,6 +18,7 @@ var articleCrawlResultEvent = "rssfeed-article-crawl-result-event";
 var articleOntologyEvent = "rssfeed-article-ontology-event";
 var articleResearchEvent = "rssfeed-article-research-event";
 
+
 var username = builder.AddParameter("rmq-user", "guest");
 var password = builder.AddParameter("rmq-pwd", "guest");
 var messagingQueues = builder
@@ -31,7 +32,7 @@ var queueMigration = AddRabitMqQueueInit(
     messagingQueues, 
     username, 
     password, 
-    articleCrawlEvent
+    articleCrawlEvent, articleOntologyEvent
 );
 
 var pubSubMigration = AddRabbitMqPubSubInit(
@@ -40,7 +41,7 @@ var pubSubMigration = AddRabbitMqPubSubInit(
     username, 
     password, 
     articleCrawlExchange,
-    [articleCrawlResultEvent, articleOntologyEvent, articleResearchEvent]
+    [articleCrawlResultEvent, articleResearchEvent]
 );
 //#####################Database################################
 

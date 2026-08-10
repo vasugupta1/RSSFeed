@@ -4,6 +4,7 @@ from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from sqlalchemy import create_engine, text
 from typing import Generator
+import uuid
 
 class EmbeddingService:
 
@@ -15,19 +16,30 @@ class EmbeddingService:
         )   
         self.engine = create_engine(vector_store_connection_string)
 
-    def generate_and_save_embedding(self, request: str, metadata) -> list[str]:
+    def generate_and_save_embedding(self, request: str, metadata: dict[str, list[str]]) -> list[str]:
+        doc_id = str(uuid.uuid4)
         text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=800,
             chunk_overlap=100,
             length_function=len,
             is_separator_regex=False,
         )
-        print("splitting......................")
-        print(request)
-
         chunks = text_splitter.split_text(request)
-        chunk_metadatas = [metadata for _ in chunks]
-        result = self.vector_store.add_texts(texts = chunks, metadatas= chunk_metadatas)
+
+        chunk_metadatas = []
+        chunk_ids = []
+
+        for idx,_ in enumerate(chunks):
+            chunk_md = {
+                **metadata,
+                "doc_id": doc_id,
+                "chunk_index": idx,
+                "total_chunks": len(chunks)
+            }
+            chunk_metadatas.append(chunk_md)
+            chunk_ids.append(f"{doc_id}_chunk_{idx}")
+
+        result = self.vector_store.add_texts(texts = chunks, ids= chunk_ids, metadatas= chunk_metadatas)
         return result
 
     def search(self, search_query: str, k: int =  5) -> Generator[Document]:
