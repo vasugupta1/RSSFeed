@@ -7,7 +7,7 @@ from repository.embedding import EmbeddingService
 from services.searchservice import SearchService
 import asyncio
 import logging
-from background_services.crawleventconsumer import ArticleAnalysisEvent
+from models.articleanalysisevent import ArticleAnalysisEvent
 from services.crawlpipeline import CrawlPipeline
 
 logger = logging.getLogger(__name__)

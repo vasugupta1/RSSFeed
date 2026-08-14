@@ -10,6 +10,7 @@ from repository.embedding import EmbeddingService
 from services.searchservice import SearchService
 from background_services.crawlresearcheventconsumer import CrawlResearchEventConsumer
 from services.crawlpipeline import CrawlPipeline
+from graphs.crawlUrlGraph import CrawlEventGraph
 import asyncio
 
 class ServiceContainer:
@@ -123,13 +124,16 @@ class ServiceContainerBuilder:
                 "Cannot build CrawlEventConsumer: Messaging, Crawler, RSS Analyser, "
                 "and Embedding services must be initialized first."
             )
+
+        graph = CrawlEventGraph(
+            self._container.crawl_pipeline, 
+            self._container.rss_analyser_service,
+            self._container.embedding_service,
+            self._container.crawl_event_result_messaging)
         
         self._container.crawl_event_consumer = CrawlEventConsumer(
             crawl_event_messaging = self._container.crawl_event_messaging,
-            crawl_result_event_messaging =  self._container.crawl_event_result_messaging,
-            crawl_pipeline = self._container.crawl_pipeline,
-            analyser = self._container.rss_analyser_service ,
-            embedding = self._container.embedding_service,
+            graph= graph,
             loop = loop
         )
 
