@@ -17,7 +17,7 @@ class EmbeddingService:
         self.engine = create_engine(vector_store_connection_string)
 
     def generate_and_save_embedding(self, request: str, metadata: dict[str, list[str]]) -> list[str]:
-        doc_id = str(uuid.uuid4)
+        doc_id = str(uuid.uuid4())
         text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=800,
             chunk_overlap=100,

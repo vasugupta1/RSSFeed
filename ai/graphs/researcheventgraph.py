@@ -7,6 +7,9 @@ from messaging.messagingservice import MessagingService
 from services.researchanalysis import ResearchGeneratorService, ResearchGeneratorResult
 from services.articleanalysis import RSSAnalyserService, ArticleAnalysis
 import asyncio
+import logging
+
+logger = logging.getLogger(__name__)
 
 class CrawlResearchState(TypedDict, total=False):
     """Input Event will tell us these 3 things"""
@@ -77,12 +80,25 @@ class CrawlResearchNodes:
     @staticmethod
     def make_crawl_node(crawl_pipeline: CrawlPipeline):
         async def crawl_node(state: CrawlResearchState) -> dict:
-            enrichment_content = await asyncio.gather(
+
+            async def safe_crawl(url: str) -> ProcessedPage | None:
+                try:
+                    return await crawl_pipeline.run(url)
+                except Exception as e:
+                    logger.warning("Crawl failed for %s: %s", url, e)
+                    return None
+
+            results = await asyncio.gather(
                 *[
-                    crawl_pipeline.run(search_result.url)
+                    safe_crawl(search_result.url)
                     for search_result in state["search_results"]
                 ]
             )
+
+            enrichment_content = [page for page in results if page is not None]
+
+            if not enrichment_content:
+                logger.warning("All crawls failed — no enrichment content produced")
 
             return {
                    "enrichment_content": enrichment_content
@@ -111,6 +127,9 @@ class CrawlResearchNodes:
         async def embed_node(state: CrawlResearchState) -> dict:
 
             for content in state["article_analysis"]:
+                if not content.article_overview:
+                    logger.warning("Skipping embed — empty article_overview")
+                    continue
                 metadata = {
                             "keywords" : content.keywords,
                             "bullet_point_summary" : content.bullet_point_summary,

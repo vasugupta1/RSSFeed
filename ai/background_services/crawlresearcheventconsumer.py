@@ -31,7 +31,7 @@ class CrawlResearchEventConsumer:
                 "country": event.country,
                 "title": event.title,
                 "summary": event.summary,
-                "max_results": 5,
+                "max_results": 1,
             })
 
             logger.info("Successfully processed crawl research event for: %s with final state: %s", event.url, final_state)

@@ -100,9 +100,9 @@ this article and its broader topic.
         country: str,
         title: str,
     ) -> ResearchGeneratorResult:
-        response = self.chain.ainvoke(
+        response = await self.chain.ainvoke(
             {
-                "summary": ", ".join(summary),
+                "message": ", ".join(summary),
                 "keywords": ", ".join(keywords),
                 "country": country,
                 "title": title,
