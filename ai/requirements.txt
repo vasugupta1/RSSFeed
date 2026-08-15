@@ -120,3 +120,4 @@ langgraph
 langchain
 ddgs==9.14.4
 Trafilatura
+langsmith
