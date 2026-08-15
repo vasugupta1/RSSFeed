@@ -121,18 +121,6 @@ class CrawlResearchNodes:
         return embed_node
 
 
-    # @staticmethod
-    # def make_publisher_node(messager: MessagingService):
-    #     async def publisher_node(state: CrawlResearchState) -> dict:
-    #         event = {
-               
-    #         }
-    #         messager.publish_to_exchange(event)
-    #         return {}
-    #     return publisher_node
-
-
-
 class CrawlResearchGraph:
 
     def __init__(self,

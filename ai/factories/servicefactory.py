@@ -10,7 +10,9 @@ from repository.embedding import EmbeddingService
 from services.searchservice import SearchService
 from background_services.crawlresearcheventconsumer import CrawlResearchEventConsumer
 from services.crawlpipeline import CrawlPipeline
+from services.researchanalysis import ResearchGeneratorService
 from graphs.crawlUrlGraph import CrawlEventGraph
+from graphs.researcheventgraph import CrawlResearchGraph
 import asyncio
 
 class ServiceContainer:
@@ -23,6 +25,7 @@ class ServiceContainer:
         self.ontology_service: ArticleOntologyService | None = None
         self.graph_service: GraphService | None = None
         self.search_service: SearchService | None = None
+        self.research_generator_service: ResearchGeneratorService | None = None
         self.crawl_event_messaging: MessagingService | None = None
         self.crawl_event_result_messaging: MessagingService | None = None
         self.crawl_event_consumer: CrawlEventConsumer | None = None
@@ -111,6 +114,9 @@ class ServiceContainerBuilder:
             embedding= self._container.embedding_service
         )
         self._container.search_service = SearchService()
+        self._container.research_generator_service = ResearchGeneratorService(
+            url=self.config.LLM_URI,
+            model=self.config.LLM_MODEL)
         return self
 
     def build_crawl_event_background_service(self, loop: asyncio.AbstractEventLoop) ->  "ServiceContainerBuilder":
@@ -142,21 +148,29 @@ class ServiceContainerBuilder:
 
     def build_crawl_research_event_background_service(self, loop: asyncio.AbstractEventLoop) -> "ServiceContainerBuilder":
         if not (self._container.crawl_research_event_messaging 
-                        and self._container.crawl_pipeline 
-                        and self._container.rss_analyser_service 
-                        and self._container.embedding_service):
-                    raise RuntimeError(
-                        "Cannot build CrawlEventConsumer: Messaging, Crawler, RSS Analyser, "
-                        "and Embedding services must be initialized first."
-                    )
+                and self._container.crawl_pipeline 
+                and self._container.rss_analyser_service 
+                and self._container.embedding_service
+                and self._container.search_service
+                and self._container.research_generator_service):
+            raise RuntimeError(
+                "Cannot build CrawlResearchEventConsumer: Messaging, CrawlPipeline, "
+                "RSS Analyser, Embedding, Search, and ResearchGenerator services must be initialized first."
+            )
+
+        crawl_research_graph = CrawlResearchGraph(
+            research_generator=self._container.research_generator_service,
+            search_service=self._container.search_service,
+            crawl_pipeline=self._container.crawl_pipeline,
+            analyser=self._container.rss_analyser_service,
+            embedder=self._container.embedding_service,
+        )
                 
         self._container.crawl_research_event_consumer = CrawlResearchEventConsumer(
-                    crawl_research_event_messaging = self._container.crawl_research_event_messaging,
-                    crawl_pipeline =  self._container.crawl_pipeline,
-                    analyser = self._container.rss_analyser_service ,
-                    embedding = self._container.embedding_service,
-                    loop = loop
-                )
+            crawl_research_event_messaging=self._container.crawl_research_event_messaging,
+            crawl_research_graph=crawl_research_graph,
+            loop=loop,
+        )
 
         return self
 
