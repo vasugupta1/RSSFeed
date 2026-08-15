@@ -12,9 +12,9 @@ class CrawlEventConsumer:
 
     def __init__(self, 
                 crawl_event_messaging: MessagingService,
-                graph: CrawlEventGraph,
+                crawl_url_graph: CrawlEventGraph,
                 loop: AbstractEventLoop):
-        self.graph = graph
+        self.crawl_url_graph = crawl_url_graph
         self.crawl_event_messaging = crawl_event_messaging
         self.loop = loop
 
@@ -25,7 +25,7 @@ class CrawlEventConsumer:
             
             logger.info("Starting Graph url: %s", event.url)
 
-            graph = self.graph.build_crawl_graph()
+            graph = self.crawl_url_graph.build_crawl_graph()
 
             final_state = await graph.ainvoke({
                 "url" : event.url,
@@ -37,7 +37,6 @@ class CrawlEventConsumer:
         except Exception as e:
             logger.error("Failed to process crawl event: %s", e, exc_info=True)
             raise
-
 
     def _sync_callback(self, result: dict) -> None:
         """Bridge: schedules the async work on the main event loop and blocks until it completes."""

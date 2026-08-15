@@ -125,7 +125,7 @@ class ServiceContainerBuilder:
                 "and Embedding services must be initialized first."
             )
 
-        graph = CrawlEventGraph(
+        crawl_url_graph = CrawlEventGraph(
             self._container.crawl_pipeline, 
             self._container.rss_analyser_service,
             self._container.embedding_service,
@@ -133,7 +133,7 @@ class ServiceContainerBuilder:
         
         self._container.crawl_event_consumer = CrawlEventConsumer(
             crawl_event_messaging = self._container.crawl_event_messaging,
-            graph= graph,
+            crawl_url_graph= crawl_url_graph,
             loop = loop
         )
 

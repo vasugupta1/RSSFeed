@@ -46,6 +46,11 @@ class RSSAnalyserService:
         self.chain = self.prompt | self.structured_llm
 
 
+    """ This needs to be remove in the future for the async version"""
     def analyze_text(self, text_content: str) -> ArticleAnalysis:
         response = self.chain.invoke({"message": text_content})
         return cast(ArticleAnalysis, response)
+
+    async def analyze_text_async(self, text_content: str) -> ArticleAnalysis:
+            response = await self.chain.ainvoke({"message": text_content})
+            return cast(ArticleAnalysis, response)
