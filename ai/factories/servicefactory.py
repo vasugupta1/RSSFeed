@@ -11,7 +11,7 @@ from services.searchservice import SearchService
 from background_services.crawlresearcheventconsumer import CrawlResearchEventConsumer
 from services.crawlpipeline import CrawlPipeline
 from services.researchanalysis import ResearchGeneratorService
-from graphs.crawlUrlGraph import CrawlEventGraph
+from graphs.crawlurlgraph import CrawlEventGraph
 from graphs.researcheventgraph import CrawlResearchGraph
 import asyncio
 

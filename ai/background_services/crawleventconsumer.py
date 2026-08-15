@@ -3,7 +3,7 @@ from asyncio.events import AbstractEventLoop
 from concurrent.futures import Future
 import asyncio
 import logging
-from graphs.crawlUrlGraph import CrawlEventGraph
+from graphs.crawlurlgraph import CrawlEventGraph
 from models.crawlevent import CrawlEvent
 
 logger = logging.getLogger(__name__)
