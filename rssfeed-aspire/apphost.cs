@@ -97,7 +97,7 @@ var ollama = builder.AddOllama("ollama")
                     .WithEnvironment("OLLAMA_CONTEXT_LENGTH", "16384")
                     .WithContainerRuntimeArgs("--device", "/dev/kfd", "--device", "/dev/dri");
         
-var llm = ollama.AddModel("llm", "llama3.1");
+var llm = ollama.AddModel("llm", "gemma4:e2b");
 var embeddings = ollama.AddModel("embeddings", "nomic-embed-text");
 var ai = builder.AddUvicornApp(name: "rssfeedai", appDirectory: "../ai", app: "app:app")
                     .WithEnvironment("RABBITMQ_ONTOLOOGY_QUEUE", articleOntologyEvent)

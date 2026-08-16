@@ -37,7 +37,7 @@ Your task is NOT to summarize the article.
 Your task is to determine what should be searched for next in order to
 research the article's topic more deeply.
 
-Generate 5 to 10 high-quality search queries that can be sent directly
+Generate 5 high-quality search queries that can be sent directly
 to DuckDuckGo.
 
 The queries should:
