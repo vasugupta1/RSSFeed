@@ -7,6 +7,7 @@ from messaging.messagingservice import MessagingService
 from services.researchanalysis import ResearchGeneratorService, ResearchGeneratorResult
 from services.articleanalysis import RSSAnalyserService, ArticleAnalysis
 from services.analysisvalidator import AnalysisValidator, ValidationVerdict
+from models.ontologyevent import OntologyEvent
 import asyncio
 import logging
 
@@ -28,20 +29,6 @@ class CrawlResearchState(TypedDict, total=False):
 
     #validation — only analyses that pass both tiers
     validated_analyses: list[ArticleAnalysis]
-
-
-""" What do we want ?
-    Basic Overview: 
-    We want first to get the llm to understand what he needs for research -> call llm
-    Take the response from llm and pass that over to duckduckgo api to search -> call search
-    Take the search response and crawl -> call crawlPipeline
-    Take all of the enrichement content and embed and save -> call embedding service
-    Generate an event and publish for ontology -> call publishing service
-
-
-    Feature List:
-    1. llm and search need to work together with retry in order for it to understand that what search returned is good for enrichement
-"""
 
 class CrawlResearchNodes:
 
@@ -144,6 +131,25 @@ class CrawlResearchNodes:
         return embed_node
 
     @staticmethod
+    def make_publisher_node(crawl_ontology_event_messaging: MessagingService):
+        async def publisher_node(state: CrawlResearchState) -> dict:
+            event = OntologyEvent(
+                keywords=state["keywords"],
+                country=state["country"],
+                title=state["title"],
+                summary=state["summary"],
+                max_results=state["max_results"],
+                search_queries=state.get("search_queries", []),
+            )
+
+            crawl_ontology_event_messaging.publish_to_queue(event)
+
+            return {}
+
+        return publisher_node
+
+
+    @staticmethod
     def make_validate_node(validator: AnalysisValidator):
         """Two-tier validation across all article analyses in the batch.
         
@@ -222,13 +228,15 @@ class CrawlResearchGraph:
                 crawl_pipeline: CrawlPipeline,
                 analyser: RSSAnalyserService,
                 embedder: EmbeddingService,
-                analysis_validator: AnalysisValidator,) -> None:
+                analysis_validator: AnalysisValidator,
+                crawl_ontology_event_messaging: MessagingService) -> None:
             self.research_generator = research_generator
             self.search_service = search_service
             self.crawl_pipeline = crawl_pipeline
             self.analyser = analyser
             self.embedder = embedder
             self.analysis_validator = analysis_validator
+            self.crawl_ontology_event_messaging = crawl_ontology_event_messaging
 
 
     def build_graph(self):
@@ -276,6 +284,10 @@ class CrawlResearchGraph:
             ),
         )
 
+        graph.add_node(
+            "publish",
+            CrawlResearchNodes.make_publisher_node(self.crawl_ontology_event_messaging))
+
         graph.set_entry_point("research_context")
 
         graph.add_edge("research_context", "search")
@@ -283,12 +295,7 @@ class CrawlResearchGraph:
         graph.add_edge("crawl", "analyse")
         graph.add_edge("analyse", "validate")
         graph.add_edge("validate", "embed")
-        graph.add_edge("embed", END)
+        graph.add_edge("embed", "publish")
+        graph.add_edge("publish", END)
 
         return graph.compile()
-
-         
-
-
-         
-            

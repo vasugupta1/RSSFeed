@@ -33,6 +33,7 @@ class ServiceContainer:
         self.crawl_research_event_messaging: MessagingService | None  = None
         self.crawl_research_event_consumer: CrawlResearchEventConsumer | None = None
         self.analysis_validator : AnalysisValidator | None = None
+        self.crawl_ontology_event_messaging: MessagingService | None = None
 
     def attach_to_app(self, app: FastAPI):
         """Binds initialized services into app.state."""
@@ -49,6 +50,7 @@ class ServiceContainer:
         app.state.crawl_research_event_messaging = self.crawl_research_event_messaging
         app.state.crawl_research_event_consumer = self.crawl_research_event_consumer
         app.state.analysis_validator = self.analysis_validator
+        app.state.crawl_ontology_event_messaging =  self.crawl_ontology_event_messaging
 
     async def cleanup(self):
         """Gracefully close open resources on shutdown."""
@@ -95,6 +97,12 @@ class ServiceContainerBuilder:
         self._container.crawl_research_event_messaging = MessagingService(
             uri = self.config.MESSAGING_URI, 
             queue_name= self.config.CRAWL_RESEARCH_EVENT_QUEUE,
+            exchange_name= None
+        )
+
+        self._container.crawl_ontology_event_messaging = MessagingService(
+            uri = self.config.MESSAGING_URI, 
+            queue_name= self.config.ONTOLOOGY_QUEUE,
             exchange_name= None
         )
 
@@ -164,7 +172,8 @@ class ServiceContainerBuilder:
                 and self._container.embedding_service
                 and self._container.search_service
                 and self._container.research_generator_service
-                and self._container.analysis_validator):
+                and self._container.analysis_validator
+                and self._container.crawl_ontology_event_messaging):
             raise RuntimeError(
                 "Cannot build CrawlResearchEventConsumer: Messaging, CrawlPipeline, "
                 "RSS Analyser, Embedding, Search, and ResearchGenerator services must be initialized first."
@@ -178,6 +187,7 @@ class ServiceContainerBuilder:
             analyser=self._container.rss_analyser_service,
             embedder=self._container.embedding_service,
             analysis_validator=self._container.analysis_validator,
+            crawl_ontology_event_messaging = self._container.crawl_ontology_event_messaging
         )
                 
         self._container.crawl_research_event_consumer = CrawlResearchEventConsumer(
