@@ -84,8 +84,7 @@ class CrawlEventNodes:
                 "keywords": state.get("keywords"),
                 "country": state.get("country"),
             }
-            """ Disable publish for nows"""
-            # messager.publish_to_exchange(event)
+            messager.publish_to_exchange(event)
             return {}
         return publisher_node
 

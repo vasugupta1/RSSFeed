@@ -6,6 +6,7 @@ from repository.embedding import EmbeddingService
 from messaging.messagingservice import MessagingService
 from services.researchanalysis import ResearchGeneratorService, ResearchGeneratorResult
 from services.articleanalysis import RSSAnalyserService, ArticleAnalysis
+from services.analysisvalidator import AnalysisValidator, ValidationVerdict
 import asyncio
 import logging
 
@@ -24,6 +25,9 @@ class CrawlResearchState(TypedDict, total=False):
     search_results: list[SearchResult]
     enrichment_content: list[ProcessedPage]
     article_analysis : list[ArticleAnalysis]
+
+    #validation — only analyses that pass both tiers
+    validated_analyses: list[ArticleAnalysis]
 
 
 """ What do we want ?
@@ -126,7 +130,7 @@ class CrawlResearchNodes:
     def make_embed_node(embedder: EmbeddingService):
         async def embed_node(state: CrawlResearchState) -> dict:
 
-            for content in state["article_analysis"]:
+            for content in state["validated_analyses"]:
                 if not content.article_overview:
                     logger.warning("Skipping embed — empty article_overview")
                     continue
@@ -139,6 +143,76 @@ class CrawlResearchNodes:
             return {}
         return embed_node
 
+    @staticmethod
+    def make_validate_node(validator: AnalysisValidator):
+        """Two-tier validation across all article analyses in the batch.
+        
+        Tier 1: Cheap heuristic checks (empty fields, min lengths).
+        Tier 2: LLM coherence/faithfulness check against source content.
+        
+        Invalid analyses are filtered out with a warning log.
+        """
+        async def validate_node(state: CrawlResearchState) -> dict:
+            analyses: list[ArticleAnalysis] = state.get("article_analysis", [])
+            enrichment: list[ProcessedPage] = state.get("enrichment_content", [])
+            validated: list[ArticleAnalysis] = []
+
+            for i, analysis in enumerate(analyses):
+                source_md = enrichment[i].cleaned_markdown if i < len(enrichment) else ""
+
+                # ── Tier 1: heuristic checks ──
+                problems = []
+                if not analysis.title or analysis.title.lower() in ("summary", "untitled", "n/a"):
+                    problems.append("bad_title")
+                if not analysis.keywords or len(analysis.keywords) == 0:
+                    problems.append("no_keywords")
+                if not analysis.summary or len(analysis.summary) == 0:
+                    problems.append("no_summary")
+                if not analysis.article_overview or len(analysis.article_overview) < 50:
+                    problems.append("thin_overview")
+
+                if problems:
+                    logger.warning(
+                        "Research analysis %d/%d failed tier 1 heuristics: %s (title=%s)",
+                        i + 1, len(analyses), problems, analysis.title
+                    )
+                    continue
+
+                # ── Tier 2: LLM coherence check ──
+                try:
+                    verdict: ValidationVerdict = await validator.validate(
+                        source_markdown=source_md,
+                        title=analysis.title,
+                        summary=analysis.summary,
+                        bullet_point_summary=analysis.bullet_point_summary,
+                        keywords=analysis.keywords,
+                        article_overview=analysis.article_overview,
+                        country=analysis.country,
+                    )
+
+                    if verdict.is_valid:
+                        validated.append(analysis)
+                    else:
+                        logger.warning(
+                            "Research analysis %d/%d failed tier 2 LLM validation: "
+                            "problem_type=%s, reasons=%s (title=%s)",
+                            i + 1, len(analyses), verdict.problem_type, verdict.reasons, analysis.title
+                        )
+                except Exception as e:
+                    logger.error(
+                        "LLM validation failed for analysis %d/%d, passing through: %s",
+                        i + 1, len(analyses), e
+                    )
+                    validated.append(analysis)
+
+            logger.info(
+                "Research validation complete: %d/%d analyses passed",
+                len(validated), len(analyses)
+            )
+
+            return {"validated_analyses": validated}
+        return validate_node
+
 
 class CrawlResearchGraph:
 
@@ -147,12 +221,14 @@ class CrawlResearchGraph:
                 search_service: SearchService,
                 crawl_pipeline: CrawlPipeline,
                 analyser: RSSAnalyserService,
-                embedder: EmbeddingService,) -> None:
+                embedder: EmbeddingService,
+                analysis_validator: AnalysisValidator,) -> None:
             self.research_generator = research_generator
             self.search_service = search_service
             self.crawl_pipeline = crawl_pipeline
             self.analyser = analyser
             self.embedder = embedder
+            self.analysis_validator = analysis_validator
 
 
     def build_graph(self):
@@ -187,6 +263,13 @@ class CrawlResearchGraph:
         )
 
         graph.add_node(
+            "validate",
+            CrawlResearchNodes.make_validate_node(
+                self.analysis_validator
+            ),
+        )
+
+        graph.add_node(
             "embed",
             CrawlResearchNodes.make_embed_node(
                 self.embedder
@@ -198,7 +281,8 @@ class CrawlResearchGraph:
         graph.add_edge("research_context", "search")
         graph.add_edge("search", "crawl")
         graph.add_edge("crawl", "analyse")
-        graph.add_edge("analyse", "embed")
+        graph.add_edge("analyse", "validate")
+        graph.add_edge("validate", "embed")
         graph.add_edge("embed", END)
 
         return graph.compile()

@@ -163,18 +163,21 @@ class ServiceContainerBuilder:
                 and self._container.rss_analyser_service 
                 and self._container.embedding_service
                 and self._container.search_service
-                and self._container.research_generator_service):
+                and self._container.research_generator_service
+                and self._container.analysis_validator):
             raise RuntimeError(
                 "Cannot build CrawlResearchEventConsumer: Messaging, CrawlPipeline, "
                 "RSS Analyser, Embedding, Search, and ResearchGenerator services must be initialized first."
             )
 
+    
         crawl_research_graph = CrawlResearchGraph(
             research_generator=self._container.research_generator_service,
             search_service=self._container.search_service,
             crawl_pipeline=self._container.crawl_pipeline,
             analyser=self._container.rss_analyser_service,
             embedder=self._container.embedding_service,
+            analysis_validator=self._container.analysis_validator,
         )
                 
         self._container.crawl_research_event_consumer = CrawlResearchEventConsumer(
