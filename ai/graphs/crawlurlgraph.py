@@ -2,6 +2,7 @@ from typing import TypedDict
 from langgraph.graph import StateGraph, END
 from services.crawlpipeline import CrawlPipeline, ProcessedPage
 from services.articleanalysis import RSSAnalyserService, ArticleAnalysis
+from services.analysisvalidator import AnalysisValidator, ValidationVerdict
 from logging import Logger
 from repository.embedding import EmbeddingService
 from messaging.messagingservice import MessagingService
@@ -24,8 +25,13 @@ class CrawlGraphState(TypedDict, total= False):
     #retry
     attempt:int
     max_attempt:int
-    crawl_startergy:str
+    crawl_strategy:str
     failure_reason:str
+
+    #tier 2 validation
+    validation_passed: bool
+    validation_problem_type: str | None
+    validation_reasons: list[str]
 
 
 class CrawlEventNodes:
@@ -78,7 +84,8 @@ class CrawlEventNodes:
                 "keywords": state.get("keywords"),
                 "country": state.get("country"),
             }
-            messager.publish_to_exchange(event)
+            """ Disable publish for nows"""
+            # messager.publish_to_exchange(event)
             return {}
         return publisher_node
 
@@ -99,6 +106,31 @@ class CrawlEventNodes:
     def deadletter(state: CrawlGraphState) -> dict:
         return{}
 
+    @staticmethod
+    def make_llm_validation_node(validator: AnalysisValidator):
+        """Tier 2: LLM-based coherence and faithfulness check."""
+        async def llm_validate_node(state: CrawlGraphState) -> dict:
+            verdict: ValidationVerdict = await validator.validate(
+                source_markdown=state["cleaned_markdown"],
+                title=state.get("title", ""),
+                summary=state.get("summary", []),
+                bullet_point_summary=state.get("bullet_point_summary", []),
+                keywords=state.get("keywords", []),
+                article_overview=state.get("article_overview", ""),
+                country=state.get("country", ""),
+            )
+            return {
+                "validation_passed": verdict.is_valid,
+                "validation_problem_type": verdict.problem_type,
+                "validation_reasons": verdict.reasons,
+            }
+        return llm_validate_node
+
+    @staticmethod
+    def retry_analyse_node(state: CrawlGraphState) -> dict:
+        """Lightweight retry that skips re-crawling — just increments attempt and re-runs analysis."""
+        return {"attempt": state.get("attempt", 1) + 1}
+
 
 class CrawlEventGraph:
     def __init__(
@@ -107,11 +139,13 @@ class CrawlEventGraph:
         analyser_service: RSSAnalyserService,
         embedding_service: EmbeddingService,
         messaging_service: MessagingService,
+        analysis_validator: AnalysisValidator,
     ) -> None:
         self.crawl_pipeline = crawl_pipeline
         self.analyser_service = analyser_service
         self.embedding_service = embedding_service
         self.messaging_service = messaging_service
+        self.analysis_validator = analysis_validator
 
     def validate_crawl(self, state: CrawlGraphState) -> str:
         attempt = state.get("attempt", 1)
@@ -132,12 +166,11 @@ class CrawlEventGraph:
         return "analyze"
 
 
-    def validate_analysis(self, state: CrawlGraphState) -> str:
-        """After LLM analysis, check the output quality."""
+    def tier1_check(self, state: CrawlGraphState) -> str:
+        """Tier 1: Cheap heuristic checks for structurally broken analysis output."""
         attempt = state.get("attempt", 1)
         max_attempt = state.get("max_attempt", 3)
 
-        # Check: Did the LLM actually produce useful structured data?
         problems = []
         if not state.get("title") or state["title"].lower() in ("summary", "untitled", "n/a"):
             problems.append("bad_title")
@@ -151,23 +184,43 @@ class CrawlEventGraph:
         if problems:
             if attempt >= max_attempt:
                 return "dead_letter"
-            state["failure_reason"] = f"weak_analysis: {', '.join(problems)}"
             return "retry"
 
-        return "embed"
+        return "llm_validate"
+
+
+    def tier2_route(self, state: CrawlGraphState) -> str:
+        """Tier 2: Route based on LLM validation verdict — smart retry."""
+        attempt = state.get("attempt", 1)
+        max_attempt = state.get("max_attempt", 3)
+
+        if state.get("validation_passed"):
+            return "embed"
+
+        if attempt >= max_attempt:
+            return "dead_letter"
+
+        problem = state.get("validation_problem_type")
+        if problem == "content_issue":
+            return "retry_crawl"
+        else:
+            return "retry_analyse"
 
     def build_crawl_graph(self):
         graph = StateGraph(CrawlGraphState)
 
         graph.add_node("crawl", CrawlEventNodes.make_crawl_node(self.crawl_pipeline))
         graph.add_node("analyze", CrawlEventNodes.make_analyise_node(self.analyser_service))
+        graph.add_node("llm_validate", CrawlEventNodes.make_llm_validation_node(self.analysis_validator))
         graph.add_node("retry_crawl", CrawlEventNodes.retry_crawl_node)
+        graph.add_node("retry_analyse", CrawlEventNodes.retry_analyse_node)
         graph.add_node("embed", CrawlEventNodes.make_embed_node(self.embedding_service))
         graph.add_node("publish", CrawlEventNodes.make_publisher_node(self.messaging_service))
         graph.add_node("dead_letter", CrawlEventNodes.deadletter)
     
         graph.set_entry_point("crawl")
 
+        # Crawl → validate crawl output
         graph.add_conditional_edges(
             "crawl",
             self.validate_crawl,
@@ -177,21 +230,34 @@ class CrawlEventGraph:
                 "dead_letter": "dead_letter",
             }
         )
-            
-        # Retry → back to crawl (the loop)
-        graph.add_edge("retry_crawl", "crawl")
 
-        # Analyze → validate → branch
+        # Analyze → Tier 1 heuristic check
         graph.add_conditional_edges(
             "analyze",
-            self.validate_analysis,
+            self.tier1_check,
             {
-                "embed": "embed",
+                "llm_validate": "llm_validate",
                 "retry": "retry_crawl",
                 "dead_letter": "dead_letter",
             }
         )
-        
+
+        # LLM validate → Tier 2 smart route
+        graph.add_conditional_edges(
+            "llm_validate",
+            self.tier2_route,
+            {
+                "embed": "embed",
+                "retry_crawl": "retry_crawl",
+                "retry_analyse": "retry_analyse",
+                "dead_letter": "dead_letter",
+            }
+        )
+
+        # Retry loops
+        graph.add_edge("retry_crawl", "crawl")
+        graph.add_edge("retry_analyse", "analyze")
+
         # Happy path
         graph.add_edge("embed", "publish")
         graph.add_edge("publish", END)
