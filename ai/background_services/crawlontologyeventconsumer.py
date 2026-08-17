@@ -32,7 +32,7 @@ class CrawlOntologyEventConsumer:
                 #     "max_results": 1,
                 # })
     
-                # logger.info("Successfully processed crawl research event for: %s with final state: %s", event.url, final_state)
+                logger.info("Successfully processed ontology event")
             except Exception as e:
                 logger.error("Failed to process research crawl event: %s", e, exc_info=True)
     

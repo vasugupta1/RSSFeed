@@ -26,7 +26,7 @@ class CrawlResearchEventConsumer:
 
             graph = self.crawl_research_graph.build_graph()
 
-            final_state = await graph.ainvoke({
+            await graph.ainvoke({
                 "keywords": event.keywords,
                 "country": event.country,
                 "title": event.title,
@@ -34,7 +34,7 @@ class CrawlResearchEventConsumer:
                 "max_results": 1,
             })
 
-            logger.info("Successfully processed crawl research event for: %s with final state: %s", event.url, final_state)
+            logger.info("Successfully processed crawl research event for: %s", event.url)
         except Exception as e:
             logger.error("Failed to process research crawl event: %s", e, exc_info=True)
 

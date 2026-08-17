@@ -30,23 +30,22 @@ async def lifespan(app: FastAPI):
     container.attach_to_app(app)
     app.state.container = container
 
-    consumer_thread = None
-    if container.crawl_event_consumer:
-        consumer_thread = threading.Thread(
-            target=container.crawl_event_consumer.run_consumer, 
-            daemon=True
-        )
-        consumer_thread.start()
+    background_tasks = []
 
-    research_event_consume = None
-    if container.crawl_research_event_consumer:
-        research_event_consume = threading.Thread(
-            target = container.crawl_research_event_consumer.run_consumer,
-            daemon= True
-        )
-        research_event_consume.start()
+    if container.crawl_event_consumer:
+           background_tasks.append(asyncio.create_task(container.crawl_event_consumer.run_consumer()))
+
+    # research_event_consume = None
+    # if container.crawl_research_event_consumer:
+    #     research_event_consume = threading.Thread(
+    #         target = container.crawl_research_event_consumer.run_consumer,
+    #         daemon= True
+    #     )
+    #     research_event_consume.start()
 
     yield
+
+    await asyncio.gather(*background_tasks, return_exceptions=True)
 
     await container.cleanup()
 

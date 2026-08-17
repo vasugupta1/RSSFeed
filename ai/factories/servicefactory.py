@@ -15,6 +15,7 @@ from services.researchanalysis import ResearchGeneratorService
 from graphs.crawlurlgraph import CrawlEventGraph
 from graphs.researcheventgraph import CrawlResearchGraph
 import asyncio
+from messaging.aiomessagingservice import AsyncMessagingService
 
 class ServiceContainer:
     """Holds all initialized service singletons."""
@@ -34,6 +35,7 @@ class ServiceContainer:
         self.crawl_research_event_consumer: CrawlResearchEventConsumer | None = None
         self.analysis_validator : AnalysisValidator | None = None
         self.crawl_ontology_event_messaging: MessagingService | None = None
+        self.async_messaging_service: AsyncMessagingService | None = None
 
     def attach_to_app(self, app: FastAPI):
         """Binds initialized services into app.state."""
@@ -51,6 +53,7 @@ class ServiceContainer:
         app.state.crawl_research_event_consumer = self.crawl_research_event_consumer
         app.state.analysis_validator = self.analysis_validator
         app.state.crawl_ontology_event_messaging =  self.crawl_ontology_event_messaging
+        app.state.async_messaging_service = self.async_messaging_service
 
     async def cleanup(self):
         """Gracefully close open resources on shutdown."""
@@ -106,6 +109,11 @@ class ServiceContainerBuilder:
             exchange_name= None
         )
 
+
+        self._container.async_messaging_service = AsyncMessagingService(
+            uri= self.config.MESSAGING_URI
+        )
+
         return self
 
     def build_domain_services(self) -> "ServiceContainerBuilder":
@@ -130,7 +138,7 @@ class ServiceContainerBuilder:
             url=self.config.LLM_URI,
             model=self.config.LLM_MODEL)
 
-        self._container.analysis_validator = analysis_validator = AnalysisValidator(
+        self._container.analysis_validator  = AnalysisValidator(
                     url=self.config.LLM_URI,
                     model=self.config.LLM_MODEL
                 )
@@ -143,21 +151,24 @@ class ServiceContainerBuilder:
                 and self._container.crawl_pipeline 
                 and self._container.rss_analyser_service 
                 and self._container.embedding_service
-                and self._container.analysis_validator):
+                and self._container.analysis_validator
+                and self._container.async_messaging_service):
             raise RuntimeError(
                 "Cannot build CrawlEventConsumer: Messaging, Crawler, RSS Analyser, "
                 "and Embedding services must be initialized first."
             )
 
         crawl_url_graph = CrawlEventGraph(
-            self._container.crawl_pipeline, 
-            self._container.rss_analyser_service,
-            self._container.embedding_service,
-            self._container.crawl_event_result_messaging,
-            self._container.analysis_validator)
+            crawl_pipeline= self._container.crawl_pipeline, 
+            analyser_service = self._container.rss_analyser_service,
+            embedding_service = self._container.embedding_service,
+            crawl_result_exchange_name = self.config.CRAWL_RESULT_EXCHANGE,
+            crawl_result_event_messaging = self._container.async_messaging_service,
+            analysis_validator = self._container.analysis_validator)
         
         self._container.crawl_event_consumer = CrawlEventConsumer(
-            crawl_event_messaging = self._container.crawl_event_messaging,
+            queue_name= self.config.CRAWL_QUEUE,
+            crawl_event_messaging = self._container.async_messaging_service,
             crawl_url_graph= crawl_url_graph,
             loop = loop
         )

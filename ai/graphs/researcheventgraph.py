@@ -137,8 +137,6 @@ class CrawlResearchNodes:
                 keywords=state["keywords"],
                 country=state["country"],
                 title=state["title"],
-                summary=state["summary"],
-                max_results=state["max_results"],
                 search_queries=state.get("search_queries", []),
             )
 
