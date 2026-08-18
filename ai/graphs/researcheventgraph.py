@@ -3,7 +3,7 @@ from services.crawlpipeline import CrawlPipeline, ProcessedPage
 from services.searchservice import SearchService, SearchResult
 from langgraph.graph import StateGraph, END
 from repository.embedding import EmbeddingService
-from messaging.messagingservice import MessagingService
+from messaging.aiomessagingservice import AsyncMessagingService
 from services.researchanalysis import ResearchGeneratorService, ResearchGeneratorResult
 from services.articleanalysis import RSSAnalyserService, ArticleAnalysis
 from services.analysisvalidator import AnalysisValidator, ValidationVerdict
@@ -131,7 +131,7 @@ class CrawlResearchNodes:
         return embed_node
 
     @staticmethod
-    def make_publisher_node(crawl_ontology_event_messaging: MessagingService):
+    def make_publisher_node(crawl_ontology_event_messaging: AsyncMessagingService, queue_name:str):
         async def publisher_node(state: CrawlResearchState) -> dict:
             event = OntologyEvent(
                 keywords=state["keywords"],
@@ -140,7 +140,8 @@ class CrawlResearchNodes:
                 search_queries=state.get("search_queries", []),
             )
 
-            crawl_ontology_event_messaging.publish_to_queue(event)
+            await crawl_ontology_event_messaging.connect()
+            await crawl_ontology_event_messaging.publish(exchange_name= "", message_body= event, routing_key=queue_name)
 
             return {}
 
@@ -227,7 +228,8 @@ class CrawlResearchGraph:
                 analyser: RSSAnalyserService,
                 embedder: EmbeddingService,
                 analysis_validator: AnalysisValidator,
-                crawl_ontology_event_messaging: MessagingService) -> None:
+                crawl_ontology_event_messaging: AsyncMessagingService,
+                crawl_onotlogy_queue_name:str) -> None:
             self.research_generator = research_generator
             self.search_service = search_service
             self.crawl_pipeline = crawl_pipeline
@@ -235,6 +237,7 @@ class CrawlResearchGraph:
             self.embedder = embedder
             self.analysis_validator = analysis_validator
             self.crawl_ontology_event_messaging = crawl_ontology_event_messaging
+            self.crawl_onotlogy_queue_name = crawl_onotlogy_queue_name
 
 
     def build_graph(self):
@@ -284,7 +287,9 @@ class CrawlResearchGraph:
 
         graph.add_node(
             "publish",
-            CrawlResearchNodes.make_publisher_node(self.crawl_ontology_event_messaging))
+            CrawlResearchNodes.make_publisher_node(
+                    crawl_ontology_event_messaging = self.crawl_ontology_event_messaging, 
+                    queue_name= self.crawl_onotlogy_queue_name))
 
         graph.set_entry_point("research_context")
 

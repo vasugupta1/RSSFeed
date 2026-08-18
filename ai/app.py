@@ -3,7 +3,6 @@ import os
 from fastapi import FastAPI, HTTPException, status
 import uvicorn
 from contextlib import asynccontextmanager
-import threading
 import asyncio
 from services.articleontology import ArticleOntologyService
 from factories.servicefactory import ServiceContainerBuilder
@@ -35,14 +34,10 @@ async def lifespan(app: FastAPI):
     if container.crawl_event_consumer:
            background_tasks.append(asyncio.create_task(container.crawl_event_consumer.run_consumer()))
 
-    # research_event_consume = None
-    # if container.crawl_research_event_consumer:
-    #     research_event_consume = threading.Thread(
-    #         target = container.crawl_research_event_consumer.run_consumer,
-    #         daemon= True
-    #     )
-    #     research_event_consume.start()
+    if container.crawl_research_event_consumer:
+                background_tasks.append(asyncio.create_task(container.crawl_research_event_consumer.run_consumer()))
 
+   
     yield
 
     await asyncio.gather(*background_tasks, return_exceptions=True)
@@ -89,10 +84,7 @@ async def search():
     crawler = app.state.async_crawler
     service = CrawlPipeline(crawler=crawler)
     result = await service.run("https://seg6.space/posts/phone-server")
-    return result
-
-
-    
+    return result    
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000)) 
