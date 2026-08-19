@@ -141,7 +141,7 @@ class CrawlResearchNodes:
                     search_queries=state.get("search_queries", []),
                 )
 
-                await messaging.publish(exchange_name= "", message_body= event, routing_key=queue_name)
+                await messaging.publish(exchange_name= "", message_body= event.model_dump(), routing_key=queue_name)
 
             return {}
 
