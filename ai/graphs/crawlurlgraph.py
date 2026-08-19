@@ -75,17 +75,17 @@ class CrawlEventNodes:
 
 
     @staticmethod
-    def make_publisher_node(messager: AsyncMessagingService, exchange_name:str):
+    def make_publisher_node(messaging_uri: str, exchange_name:str):
         async def publisher_node(state: CrawlGraphState) -> dict:
-            event = {
-                "url": state.get("url"),
-                "title": state.get("title"),
-                "summary": state.get("summary"),
-                "keywords": state.get("keywords"),
-                "country": state.get("country"),
-            }
-            await messager.connect()
-            await messager.publish(exchange_name= exchange_name, message_body=event, routing_key="")
+            async with AsyncMessagingService(messaging_uri) as messaging:
+                event = {
+                                "url": state.get("url"),
+                                "title": state.get("title"),
+                                "summary": state.get("summary"),
+                                "keywords": state.get("keywords"),
+                                "country": state.get("country"),
+                            }
+                await messaging.publish(exchange_name= exchange_name, message_body=event, routing_key="")
             return {}
         return publisher_node
 
@@ -139,14 +139,14 @@ class CrawlEventGraph:
         analyser_service: RSSAnalyserService,
         embedding_service: EmbeddingService,
         crawl_result_exchange_name:str,
-        crawl_result_event_messaging: AsyncMessagingService,
+        messaging_uri: str,
         analysis_validator: AnalysisValidator,
     ) -> None:
         self.crawl_pipeline = crawl_pipeline
         self.analyser_service = analyser_service
         self.embedding_service = embedding_service
         self.crawl_result_exchange_name = crawl_result_exchange_name
-        self.crawl_result_event_messaging = crawl_result_event_messaging
+        self.messaging_uri = messaging_uri
         self.analysis_validator = analysis_validator
 
     def validate_crawl(self, state: CrawlGraphState) -> str:
@@ -217,7 +217,7 @@ class CrawlEventGraph:
         graph.add_node("retry_crawl", CrawlEventNodes.retry_crawl_node)
         graph.add_node("retry_analyse", CrawlEventNodes.retry_analyse_node)
         graph.add_node("embed", CrawlEventNodes.make_embed_node(self.embedding_service))
-        graph.add_node("publish", CrawlEventNodes.make_publisher_node(messager=self.crawl_result_event_messaging, exchange_name=self.crawl_result_exchange_name))
+        graph.add_node("publish", CrawlEventNodes.make_publisher_node(messaging_uri=self.messaging_uri, exchange_name=self.crawl_result_exchange_name))
         graph.add_node("dead_letter", CrawlEventNodes.deadletter)
     
         graph.set_entry_point("crawl")

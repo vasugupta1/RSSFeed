@@ -9,9 +9,9 @@ logger = logging.getLogger(__name__)
 class CrawlResearchEventConsumer:
     def __init__(self, 
                 queue_name: str,
-                crawl_research_event_messaging: AsyncMessagingService,
+                messaging_uri: str,
                 crawl_research_graph: CrawlResearchGraph):
-        self.crawl_research_event_messaging = crawl_research_event_messaging
+        self.messaging_uri = messaging_uri
         self.crawl_research_graph = crawl_research_graph
         self.queue_name = queue_name
 
@@ -36,11 +36,11 @@ class CrawlResearchEventConsumer:
     async def run_consumer(self):
         logger.info("[Worker Thread] Checking RabbitMQ connection...")
         try:
-            await self.crawl_research_event_messaging.connect()
-            await self.crawl_research_event_messaging.start_consumer(
-                queue_name= self.queue_name,
-                callback=self._process_message,
-                prefetch_count=10
-            )
+            async with AsyncMessagingService(self.messaging_uri) as messaging:
+                await messaging.start_consumer(
+                    queue_name= self.queue_name,
+                    callback=self._process_message,
+                    prefetch_count=1
+                )
         except Exception as e:
             logger.error("[Worker Thread] Unexpected error in research consumer: %s", e, exc_info=True)

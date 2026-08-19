@@ -15,15 +15,12 @@ config : AppConfiguration = AppConfiguration() # type: ignore[reportCallIssue]
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    loop = asyncio.get_running_loop()
-
     builder = ServiceContainerBuilder(config= config)
     container = (await builder.build_infrastructure())
     container = (
-        builder.build_messaging()
-               .build_domain_services()
-               .build_crawl_event_background_service(loop)
-               .build_crawl_research_event_background_service(loop)
+        builder.build_domain_services()
+               .build_crawl_event_background_service()
+               .build_crawl_research_event_background_service()
                .build()
     )
     container.attach_to_app(app)
@@ -31,14 +28,17 @@ async def lifespan(app: FastAPI):
 
     background_tasks = []
 
-    if container.crawl_event_consumer:
-           background_tasks.append(asyncio.create_task(container.crawl_event_consumer.run_consumer()))
+    # if container.crawl_event_consumer:
+    #        background_tasks.append(asyncio.create_task(container.crawl_event_consumer.run_consumer()))
 
     if container.crawl_research_event_consumer:
                 background_tasks.append(asyncio.create_task(container.crawl_research_event_consumer.run_consumer()))
 
    
     yield
+
+    for task in background_tasks:
+        task.cancel()
 
     await asyncio.gather(*background_tasks, return_exceptions=True)
 

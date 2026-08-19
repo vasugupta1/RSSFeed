@@ -13,8 +13,6 @@ from services.crawlpipeline import CrawlPipeline
 from services.researchanalysis import ResearchGeneratorService
 from graphs.crawlurlgraph import CrawlEventGraph
 from graphs.researcheventgraph import CrawlResearchGraph
-import asyncio
-from messaging.aiomessagingservice import AsyncMessagingService
 
 class ServiceContainer:
     """Holds all initialized service singletons."""
@@ -30,8 +28,7 @@ class ServiceContainer:
         self.crawl_event_consumer: CrawlEventConsumer | None = None
         self.crawl_research_event_consumer: CrawlResearchEventConsumer | None = None
         self.analysis_validator : AnalysisValidator | None = None
-        self.async_messaging_service: AsyncMessagingService | None = None
-
+       
     def attach_to_app(self, app: FastAPI):
         """Binds initialized services into app.state."""
         app.state.async_crawler = self.async_crawler
@@ -44,7 +41,6 @@ class ServiceContainer:
         app.state.crawl_event_consumer = self.crawl_event_consumer
         app.state.crawl_research_event_consumer = self.crawl_research_event_consumer
         app.state.analysis_validator = self.analysis_validator
-        app.state.async_messaging_service = self.async_messaging_service
 
     async def cleanup(self):
         """Gracefully close open resources on shutdown."""
@@ -75,15 +71,7 @@ class ServiceContainerBuilder:
             vector_store_connection_string= self.config.VECTOR_DATBASE_URI)
         return self
 
-    def build_messaging(self) -> "ServiceContainerBuilder":
-        """Step 2: Initialize messaging services."""
-
-        self._container.async_messaging_service = AsyncMessagingService(
-            uri= self.config.MESSAGING_URI
-        )
-
-        return self
-
+    
     def build_domain_services(self) -> "ServiceContainerBuilder":
         """Step 3: Construct higher-level domain services with dependencies."""
         if not self._container.async_crawler or not self._container.graph_service or not self._container.embedding_service:
@@ -112,14 +100,13 @@ class ServiceContainerBuilder:
                 )
         return self
 
-    def build_crawl_event_background_service(self, loop: asyncio.AbstractEventLoop) ->  "ServiceContainerBuilder":
+    def build_crawl_event_background_service(self) ->  "ServiceContainerBuilder":
 
         if not (
                 self._container.crawl_pipeline 
                 and self._container.rss_analyser_service 
                 and self._container.embedding_service
-                and self._container.analysis_validator
-                and self._container.async_messaging_service):
+                and self._container.analysis_validator):
             raise RuntimeError(
                 "Cannot build CrawlEventConsumer: Messaging, Crawler, RSS Analyser, "
                 "and Embedding services must be initialized first."
@@ -130,28 +117,26 @@ class ServiceContainerBuilder:
             analyser_service = self._container.rss_analyser_service,
             embedding_service = self._container.embedding_service,
             crawl_result_exchange_name = self.config.CRAWL_RESULT_EXCHANGE,
-            crawl_result_event_messaging = self._container.async_messaging_service,
+            messaging_uri = self.config.MESSAGING_URI,
             analysis_validator = self._container.analysis_validator)
         
         self._container.crawl_event_consumer = CrawlEventConsumer(
             queue_name= self.config.CRAWL_QUEUE,
-            crawl_event_messaging = self._container.async_messaging_service,
-            crawl_url_graph= crawl_url_graph,
-            loop = loop
+            messaging_uri = self.config.MESSAGING_URI,
+            crawl_url_graph= crawl_url_graph
         )
 
         return self
 
 
-    def build_crawl_research_event_background_service(self, loop: asyncio.AbstractEventLoop) -> "ServiceContainerBuilder":
+    def build_crawl_research_event_background_service(self) -> "ServiceContainerBuilder":
         if not (
                 self._container.crawl_pipeline 
                 and self._container.rss_analyser_service 
                 and self._container.embedding_service
                 and self._container.search_service
                 and self._container.research_generator_service
-                and self._container.analysis_validator
-                and self._container.async_messaging_service):
+                and self._container.analysis_validator):
             raise RuntimeError(
                 "Cannot build CrawlResearchEventConsumer: Messaging, CrawlPipeline, "
                 "RSS Analyser, Embedding, Search, and ResearchGenerator services must be initialized first."
@@ -165,13 +150,13 @@ class ServiceContainerBuilder:
             analyser=self._container.rss_analyser_service,
             embedder=self._container.embedding_service,
             analysis_validator=self._container.analysis_validator,
-            crawl_ontology_event_messaging = self._container.async_messaging_service,
+            messaging_uri = self.config.MESSAGING_URI,
             crawl_onotlogy_queue_name=self.config.ONTOLOOGY_QUEUE
         )
                 
         self._container.crawl_research_event_consumer = CrawlResearchEventConsumer(
             queue_name= self.config.CRAWL_RESEARCH_EVENT_QUEUE,
-            crawl_research_event_messaging=self._container.async_messaging_service,
+            messaging_uri = self.config.MESSAGING_URI,
             crawl_research_graph=crawl_research_graph
         )
 

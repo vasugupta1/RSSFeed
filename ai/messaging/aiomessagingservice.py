@@ -10,6 +10,16 @@ class AsyncMessagingService:
         self.uri = uri
         self._connection: AbstractRobustConnection | None = None
 
+    async def __aenter__(self):
+        if self._connection is None or self._connection.is_closed:
+            self._connection = await aio_pika.connect_robust(self.uri)
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """Gracefully closes all channels and the shared connection."""
+        if self._connection and not self.connection.is_closed:
+            await self._connection.close()
+
     @property
     def connection(self) -> AbstractRobustConnection:
         if self._connection is None or self._connection.is_closed:
@@ -44,7 +54,7 @@ class AsyncMessagingService:
         self,
         queue_name: str,
         callback: Callable[[Any], Awaitable[None] | None],
-        prefetch_count: int = 10,
+        prefetch_count: int = 1,
     ) -> None:
         """
         Creates a dedicated RobustChannel for this specific consumer task.
@@ -59,6 +69,7 @@ class AsyncMessagingService:
 
         queue = await channel.declare_queue(queue_name, durable=True)
 
+
         async def _on_message(message: AbstractIncomingMessage) -> None:
             async with message.process(requeue=False, reject_on_redelivered=False):
                 try:
@@ -71,10 +82,11 @@ class AsyncMessagingService:
                     raise  # triggers nack without requeue via context manager
 
         await queue.consume(_on_message)
-        print(f"[*] Consumer registered and listening on queue: {queue_name}")
 
-    async def close(self) -> None:
-        """Gracefully closes all channels and the shared connection."""
-        self._closing = True
-        if self.connection and not self.connection.is_closed:
-            await self.connection.close()
+        try:
+            await asyncio.Future()
+        except asyncio.CancelledError:
+            print("Stopping consumer")
+            raise
+
+        print(f"[*] Consumer registered and listening on queue: {queue_name}")

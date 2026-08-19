@@ -9,13 +9,11 @@ logger = logging.getLogger(__name__)
 class CrawlEventConsumer:
     def __init__(self, 
                 queue_name: str,
-                crawl_event_messaging: AsyncMessagingService,
-                crawl_url_graph: CrawlEventGraph,
-                loop: AbstractEventLoop):
+                messaging_uri: str,
+                crawl_url_graph: CrawlEventGraph):
         self.queue_name = queue_name
         self.crawl_url_graph = crawl_url_graph
-        self.crawl_event_messaging = crawl_event_messaging
-        self.loop = loop
+        self.messaging_uri = messaging_uri
 
     async def _process_message(self, result: dict) -> None:
         try:
@@ -37,10 +35,10 @@ class CrawlEventConsumer:
     async def run_consumer(self):
         logger.info("[Worker Thread] Checking RabbitMQ connection...")
         try:
-            await self.crawl_event_messaging.connect()
-            await self.crawl_event_messaging.start_consumer(
-                queue_name=self.queue_name, 
-                callback=self._process_message, 
-                prefetch_count=10)
+            async with AsyncMessagingService(self.messaging_uri) as messaging:
+                await messaging.start_consumer(
+                    queue_name=self.queue_name, 
+                    callback=self._process_message, 
+                    prefetch_count=1)
         except Exception as e:
             logger.error("[Worker Thread] Unexpected error in run_consumer: %s", e, exc_info=True)

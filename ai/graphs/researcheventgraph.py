@@ -131,17 +131,17 @@ class CrawlResearchNodes:
         return embed_node
 
     @staticmethod
-    def make_publisher_node(crawl_ontology_event_messaging: AsyncMessagingService, queue_name:str):
+    def make_publisher_node(messaging_uri: str, queue_name:str):
         async def publisher_node(state: CrawlResearchState) -> dict:
-            event = OntologyEvent(
-                keywords=state["keywords"],
-                country=state["country"],
-                title=state["title"],
-                search_queries=state.get("search_queries", []),
-            )
+            async with AsyncMessagingService(messaging_uri) as messaging:
+                event = OntologyEvent(
+                    keywords=state["keywords"],
+                    country=state["country"],
+                    title=state["title"],
+                    search_queries=state.get("search_queries", []),
+                )
 
-            await crawl_ontology_event_messaging.connect()
-            await crawl_ontology_event_messaging.publish(exchange_name= "", message_body= event, routing_key=queue_name)
+                await messaging.publish(exchange_name= "", message_body= event, routing_key=queue_name)
 
             return {}
 
@@ -228,7 +228,7 @@ class CrawlResearchGraph:
                 analyser: RSSAnalyserService,
                 embedder: EmbeddingService,
                 analysis_validator: AnalysisValidator,
-                crawl_ontology_event_messaging: AsyncMessagingService,
+                messaging_uri: str,
                 crawl_onotlogy_queue_name:str) -> None:
             self.research_generator = research_generator
             self.search_service = search_service
@@ -236,7 +236,7 @@ class CrawlResearchGraph:
             self.analyser = analyser
             self.embedder = embedder
             self.analysis_validator = analysis_validator
-            self.crawl_ontology_event_messaging = crawl_ontology_event_messaging
+            self.messaging_uri = messaging_uri
             self.crawl_onotlogy_queue_name = crawl_onotlogy_queue_name
 
 
@@ -288,7 +288,7 @@ class CrawlResearchGraph:
         graph.add_node(
             "publish",
             CrawlResearchNodes.make_publisher_node(
-                    crawl_ontology_event_messaging = self.crawl_ontology_event_messaging, 
+                    messaging_uri = self.messaging_uri, 
                     queue_name= self.crawl_onotlogy_queue_name))
 
         graph.set_entry_point("research_context")
