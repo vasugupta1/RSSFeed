@@ -111,8 +111,8 @@ class CrawlPipeline:
         raw_html = await self.crawler.fetch(request)
 
         if not raw_html:
-            raise RuntimeError(f"Failed to fetch page content for URL: {url}")
-
+            return ProcessedPage(url= str(url), raw_html="", cleaned_markdown="", word_count= 0)
+    
         clean_md = self.extractor.process(raw_html)
         word_count = len(clean_md.split())
         return ProcessedPage(

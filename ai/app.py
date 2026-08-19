@@ -3,7 +3,6 @@ import os
 from fastapi import FastAPI, HTTPException, status
 import uvicorn
 from contextlib import asynccontextmanager
-import threading
 import asyncio
 from services.articleontology import ArticleOntologyService
 from factories.servicefactory import ServiceContainerBuilder
@@ -16,37 +15,32 @@ config : AppConfiguration = AppConfiguration() # type: ignore[reportCallIssue]
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    loop = asyncio.get_running_loop()
-
     builder = ServiceContainerBuilder(config= config)
     container = (await builder.build_infrastructure())
     container = (
-        builder.build_messaging()
-               .build_domain_services()
-               .build_crawl_event_background_service(loop)
-               .build_crawl_research_event_background_service(loop)
+        builder.build_domain_services()
+               .build_crawl_event_background_service()
+               .build_crawl_research_event_background_service()
                .build()
     )
     container.attach_to_app(app)
     app.state.container = container
 
-    consumer_thread = None
-    if container.crawl_event_consumer:
-        consumer_thread = threading.Thread(
-            target=container.crawl_event_consumer.run_consumer, 
-            daemon=True
-        )
-        consumer_thread.start()
+    background_tasks = []
 
-    research_event_consume = None
+    # if container.crawl_event_consumer:
+    #        background_tasks.append(asyncio.create_task(container.crawl_event_consumer.run_consumer()))
+
     if container.crawl_research_event_consumer:
-        research_event_consume = threading.Thread(
-            target = container.crawl_research_event_consumer.run_consumer,
-            daemon= True
-        )
-        research_event_consume.start()
+                background_tasks.append(asyncio.create_task(container.crawl_research_event_consumer.run_consumer()))
 
+   
     yield
+
+    for task in background_tasks:
+        task.cancel()
+
+    await asyncio.gather(*background_tasks, return_exceptions=True)
 
     await container.cleanup()
 
@@ -90,10 +84,7 @@ async def search():
     crawler = app.state.async_crawler
     service = CrawlPipeline(crawler=crawler)
     result = await service.run("https://seg6.space/posts/phone-server")
-    return result
-
-
-    
+    return result    
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000)) 
