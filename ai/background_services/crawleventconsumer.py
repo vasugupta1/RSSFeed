@@ -1,5 +1,4 @@
 from messaging.aiomessagingservice import AsyncMessagingService
-from asyncio.events import AbstractEventLoop
 import logging
 from graphs.crawlurlgraph import CrawlEventGraph
 from models.crawlevent import CrawlEvent
