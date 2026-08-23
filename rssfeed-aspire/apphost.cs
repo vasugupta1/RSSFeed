@@ -1,4 +1,4 @@
-﻿#:package Aspire.Hosting.Azure@13.4.6
+#:package Aspire.Hosting.Azure@13.4.6
 #:package Aspire.Hosting.JavaScript@13.4.6
 #:package Aspire.Hosting.MongoDB@13.4.6
 #:package Aspire.Hosting.PostgreSQL@13.4.6
@@ -62,6 +62,15 @@ var apacheAgePostgres = builder.AddPostgres("rssfeedpostgres")
 
 var graphDb = apacheAgePostgres.AddDatabase("rssfeedontology");
 
+var neo4j = builder.AddContainer("rssfeedneo4j", "neo4j", "5.19")
+    .WithVolume("rssfeed-neo4j-data", "/data")
+    .WithEnvironment("NEO4J_AUTH", "neo4j/password")
+    .WithEnvironment("NEO4J_PLUGINS", "[\"apoc\"]")
+    .WithEnvironment("NEO4J_dbms_security_procedures_unrestricted", "apoc.*")
+    .WithHttpEndpoint(port: 7474, targetPort: 7474, name: "http")
+    .WithEndpoint(port: 7687, targetPort: 7687, name: "bolt", scheme: "bolt")
+    .WithLifetime(ContainerLifetime.Persistent);
+
 var graphDbMigration = builder.AddContainer("rssfeed-db-migrations", "ghcr.io/amacneil/dbmate")
     .WithBindMount("../migrations/graph", "/db/migrations") 
     .WithReference(graphDb)  
@@ -104,15 +113,18 @@ var ai = builder.AddUvicornApp(name: "rssfeedai", appDirectory: "../ai", app: "a
                     .WithEnvironment("RABITMQ_CRAWL_RESEARCH_QUEUE", articleResearchEvent)
                     .WithEnvironment("RABBITMQ_CRAWL_QUEUE", articleCrawlEvent)
                     .WithEnvironment("RABBITMQ_CRAWL_EXCHANGE", articleCrawlExchange)
+                    .WithEnvironment("NEO4J_URI", "bolt://neo4j:password@localhost:7687")
                     .WithReference(mongodb)
                     .WithReference(llm)
                     .WithReference(ollama)
                     .WithReference(llm)
                     .WithReference(graphDb)
+                    .WithReference(neo4j.GetEndpoint("bolt"))
                     .WithReference(vectorDb)
                     .WithReference(messagingQueues)
                     .WithReference(embeddings)
                     .WaitFor(mongodb)
+                    .WaitFor(neo4j)
                     .WaitFor(llm)
                     .WaitFor(embeddings)
                     .WaitFor(messagingQueues)

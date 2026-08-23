@@ -21,6 +21,7 @@ async def lifespan(app: FastAPI):
         builder.build_domain_services()
                .build_crawl_event_background_service()
                .build_crawl_research_event_background_service()
+               .build_crawl_ontology_event_background_service()
                .build()
     )
     container.attach_to_app(app)
@@ -28,12 +29,14 @@ async def lifespan(app: FastAPI):
 
     background_tasks = []
 
-    # if container.crawl_event_consumer:
-    #        background_tasks.append(asyncio.create_task(container.crawl_event_consumer.run_consumer()))
+    if container.crawl_event_consumer:
+           background_tasks.append(asyncio.create_task(container.crawl_event_consumer.run_consumer()))
 
     if container.crawl_research_event_consumer:
-                background_tasks.append(asyncio.create_task(container.crawl_research_event_consumer.run_consumer()))
+                 background_tasks.append(asyncio.create_task(container.crawl_research_event_consumer.run_consumer()))
 
+    if container.crawl_ontology_event_consumer:
+                 background_tasks.append(asyncio.create_task(container.crawl_ontology_event_consumer.run_consumer()))
    
     yield
 

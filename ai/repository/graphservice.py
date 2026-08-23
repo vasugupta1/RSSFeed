@@ -1,65 +1,29 @@
-import psycopg2
-from services.articleontology import ArticleOntology
-from psycopg2.extras import execute_values
-
+from langchain_neo4j import Neo4jGraph
+from langchain_ollama import ChatOllama
+from langchain_neo4j import LLMGraphTransformer
+from langchain_core.documents import Document
+from urllib.parse import urlparse
 class GraphService:
-    def __init__(self, uri: str):
-        self.conn = psycopg2.connect(uri)
+    def __init__(self, graph_uri: str, llm_url:str, model:str):
+        parsed = urlparse(graph_uri)
+        clean_url = f"{parsed.scheme}://{parsed.hostname}"
+        if parsed.port:
+            clean_url += f":{parsed.port}"
+        self.graph = Neo4jGraph(
+            url = clean_url,
+            username= parsed.username,
+            password=parsed.password,
+            database="neo4j"
+        )
+        self.graph_transfomer = LLMGraphTransformer(llm = ChatOllama(
+            model = model,
+            base_url= llm_url,
+            temperature= 0.0
+        ))
 
-    def can_connect(self)-> bool:
-        try:
-            with self.conn.cursor() as cus:
-                cus.execute("SELECT 1;")
-                cus.fetchone()
-                return True
-        except Exception as e:
-            print("Failed to connect to the datbase")
-            return False
-        
-    def save_ontology(self, ontology: ArticleOntology, article_title: str) -> bool:
-        """
-        Parses a structured Pydantic ArticleOntology object and commits 
-        it safely into the relational entities and relationships tables.
-        """
-        try:
-            with self.conn.cursor() as cursor:
-                # ---- Step 1: Bulk Insert Entities ----
-                # Transform Pydantic models to tuples for psycopg2
-                entity_data = [(e.name, e.type) for e in ontology.entities]
-                
-                insert_entities_query = """
-                    INSERT INTO entities (name, type)
-                    VALUES %s
-                    ON CONFLICT (name) DO UPDATE 
-                    SET type = EXCLUDED.type; -- Updates the type category if it evolved
-                """
-                # execute_values is significantly faster than a generic for-loop
-                execute_values(cursor, insert_entities_query, entity_data)
-
-                # ---- Step 2: Bulk Insert Relationships ----
-                relationship_data = [
-                    (r.source, r.target, r.relation_type, article_title)
-                    for r in ontology.relationships
-                ]
-                
-                insert_relationships_query = """
-                    INSERT INTO relationships (source_name, target_name, relation_type, article_title)
-                    VALUES %s
-                    ON CONFLICT (source_name, target_name, relation_type) DO NOTHING;
-                """
-                execute_values(cursor, insert_relationships_query, relationship_data)
-
-            # Commit the entire transaction atomically
-            self.conn.commit()
-            print(f"Successfully synchronized {len(ontology.entities)} entities to the graph.")
-            return True
-
-        except Exception as e:
-            # If anything breaks (e.g., LLM hallucinations violating FK paths), rollback completely
-            self.conn.rollback()
-            print(f"Transaction rolled back. Error saving ontology: {e}")
-            return False
-
-    def close(self):
-        if self.conn:
-            self.conn.close()
+    def insert_to_graph_doc(self, doc: Document) -> None:
+        graph_docs = self.graph_transfomer.convert_to_graph_documents([doc])
+        self.graph.add_graph_documents(
+            graph_docs,
+            baseEntityLabel=True, 
+            include_source=True)
