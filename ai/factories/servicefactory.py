@@ -9,10 +9,12 @@ from background_services.crawleventconsumer import CrawlEventConsumer
 from repository.embedding import EmbeddingService
 from services.searchservice import SearchService
 from background_services.crawlresearcheventconsumer import CrawlResearchEventConsumer
+from background_services.crawlontologyeventconsumer import CrawlOntologyEventConsumer
 from services.crawlpipeline import CrawlPipeline
 from services.researchanalysis import ResearchGeneratorService
 from graphs.crawlurlgraph import CrawlEventGraph
 from graphs.researcheventgraph import CrawlResearchGraph
+from graphs.ontologygraph import OntologyGraph
 
 class ServiceContainer:
     """Holds all initialized service singletons."""
@@ -27,6 +29,7 @@ class ServiceContainer:
         self.research_generator_service: ResearchGeneratorService | None = None
         self.crawl_event_consumer: CrawlEventConsumer | None = None
         self.crawl_research_event_consumer: CrawlResearchEventConsumer | None = None
+        self.crawl_ontology_event_consumer: CrawlOntologyEventConsumer | None = None
         self.analysis_validator : AnalysisValidator | None = None
        
     def attach_to_app(self, app: FastAPI):
@@ -40,6 +43,7 @@ class ServiceContainer:
         app.state.search_service = self.search_service
         app.state.crawl_event_consumer = self.crawl_event_consumer
         app.state.crawl_research_event_consumer = self.crawl_research_event_consumer
+        app.state.crawl_ontology_event_consumer = self.crawl_ontology_event_consumer
         app.state.analysis_validator = self.analysis_validator
 
     async def cleanup(self):
@@ -64,7 +68,7 @@ class ServiceContainerBuilder:
         await crawler.start()
         self._container.async_crawler = crawler
 
-        self._container.graph_service = GraphService(self.config.DATABASE_URI)
+        self._container.graph_service = GraphService(self.config.NEO4J_URI, self.config.LLM_URI, self.config.LLM_MODEL)
         self._container.embedding_service = EmbeddingService(
             model_uri= self.config.EMBEDDING_URI, 
             model_name= self.config.EMBEDDING_MODEL, 
@@ -162,6 +166,27 @@ class ServiceContainerBuilder:
 
         return self
 
+    def build_crawl_ontology_event_background_service(self) -> "ServiceContainerBuilder":
+        if not (
+                self._container.embedding_service
+                and self._container.graph_service
+                and self._container.ontology_service):
+            raise RuntimeError(
+                "Cannot build CrawlOntologyEventConsumer: Embedding, Graph, and Ontology services must be initialized first."
+            )
+
+        ontology_graph = OntologyGraph(
+            embedding_service=self._container.embedding_service,
+            graph_service=self._container.graph_service,
+        )
+
+        self._container.crawl_ontology_event_consumer = CrawlOntologyEventConsumer(
+            queue_name=self.config.ONTOLOOGY_QUEUE,
+            messaging_uri=self.config.MESSAGING_URI,
+            ontology_graph=ontology_graph
+        )
+
+        return self
 
     def build(self) -> ServiceContainer:
         """Step 4: Returns the fully constructed container."""

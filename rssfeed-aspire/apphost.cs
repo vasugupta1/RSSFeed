@@ -1,13 +1,13 @@
-﻿#:package Aspire.Hosting.Azure@13.4.6
-#:package Aspire.Hosting.JavaScript@13.4.6
-#:package Aspire.Hosting.MongoDB@13.4.6
-#:package Aspire.Hosting.PostgreSQL@13.4.6
-#:package Aspire.Hosting.Python@13.4.6
-#:package Aspire.Hosting.RabbitMQ@13.4.6
+#:package Aspire.Hosting.Azure@13.5.3
+#:package Aspire.Hosting.JavaScript@13.5.3
+#:package Aspire.Hosting.MongoDB@13.5.3
+#:package Aspire.Hosting.PostgreSQL@13.5.3
+#:package Aspire.Hosting.Python@13.5.3
+#:package Aspire.Hosting.RabbitMQ@13.5.3
 #:package CommunityToolkit.Aspire.Hosting.Golang@13.3.0
 #:package CommunityToolkit.Aspire.Hosting.McpInspector@13.4.0
 #:package CommunityToolkit.Aspire.Hosting.Ollama@13.3.0
-#:sdk Aspire.AppHost.Sdk@13.4.6
+#:sdk Aspire.AppHost.Sdk@13.5.3
 
 var builder = DistributedApplication.CreateBuilder(args);
 
@@ -54,20 +54,14 @@ var mongo = builder.AddMongoDB("rssfeed")
 
 var mongodb = mongo.AddDatabase("rssfeedurl");
 
-var apacheAgePostgres = builder.AddPostgres("rssfeedpostgres")
-    .WithDataVolume("rssfeedai-data")
-    .WithImage("apache/age", "latest")
-    .WithLifetime(ContainerLifetime.Persistent)
-    .WithPgAdmin();
-
-var graphDb = apacheAgePostgres.AddDatabase("rssfeedontology");
-
-var graphDbMigration = builder.AddContainer("rssfeed-db-migrations", "ghcr.io/amacneil/dbmate")
-    .WithBindMount("../migrations/graph", "/db/migrations") 
-    .WithReference(graphDb)  
-    .WithEnvironment("DATABASE_URL", $"{graphDb.Resource.UriExpression}?sslmode=disable&search_path=public")       
-    .WithArgs("up")                                   
-    .WaitFor(graphDb);
+var neo4j = builder.AddContainer("rssfeedneo4j", "neo4j", "5.19")
+    .WithVolume("rssfeed-neo4j-data", "/data")
+    .WithEnvironment("NEO4J_AUTH", "neo4j/password")
+    .WithEnvironment("NEO4J_PLUGINS", "[\"apoc\"]")
+    .WithEnvironment("NEO4J_dbms_security_procedures_unrestricted", "apoc.*")
+    .WithHttpEndpoint(port: 7474, targetPort: 7474, name: "http")
+    .WithEndpoint(port: 7687, targetPort: 7687, name: "bolt", scheme: "bolt")
+    .WithLifetime(ContainerLifetime.Persistent);
 
 var vectorPostgres = builder.AddPostgres("rssfeed-vectordb")
     .WithDataVolume("rssfeed-vector-data")
@@ -104,19 +98,20 @@ var ai = builder.AddUvicornApp(name: "rssfeedai", appDirectory: "../ai", app: "a
                     .WithEnvironment("RABITMQ_CRAWL_RESEARCH_QUEUE", articleResearchEvent)
                     .WithEnvironment("RABBITMQ_CRAWL_QUEUE", articleCrawlEvent)
                     .WithEnvironment("RABBITMQ_CRAWL_EXCHANGE", articleCrawlExchange)
+                    .WithEnvironment("NEO4J_URI", "bolt://neo4j:password@localhost:7687")
                     .WithReference(mongodb)
                     .WithReference(llm)
                     .WithReference(ollama)
                     .WithReference(llm)
-                    .WithReference(graphDb)
+                    .WithReference(neo4j.GetEndpoint("bolt"))
                     .WithReference(vectorDb)
                     .WithReference(messagingQueues)
                     .WithReference(embeddings)
                     .WaitFor(mongodb)
+                    .WaitFor(neo4j)
                     .WaitFor(llm)
                     .WaitFor(embeddings)
                     .WaitFor(messagingQueues)
-                    .WaitForCompletion(graphDbMigration)
                     .WaitForCompletion(vectorDbMigration)
                     .WithHttpEndpoint(port: 8001);
 
