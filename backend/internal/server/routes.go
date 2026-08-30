@@ -3,6 +3,7 @@ package server
 import (
 	"net/http"
 
+	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )
@@ -19,6 +20,9 @@ func (app *Application) registerRoutes() http.Handler {
 	r.Get("/api/articles", app.GetAllArticlesHandler.GetAllArticles)
 	r.Delete("/api/article", app.DeleteArticleHandler.DeleteArticle)
 	r.Post("/api/sync", app.SyncFeedHandler.SyncFeed)
+
+	r.Post("/query", app.GraphQlServer.ServeHTTP)
+	r.Get("/", playground.Handler("playground", "/query"))
 
 	return r
 }

@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"net/http"
 
+	gqhandler "github.com/99designs/gqlgen/graphql/handler"
 	"github.com/vasugupta1/RSSFeed/backend/internal/config"
 	"github.com/vasugupta1/RSSFeed/backend/internal/handler"
 	"github.com/vasugupta1/RSSFeed/backend/internal/repository/models"
@@ -18,6 +19,7 @@ type Application struct {
 	DeleteArticleHandler  *handler.DeleteArticleHandler
 	SyncFeedHandler       *handler.SyncFeedHandler
 	ArticleChannel        chan models.Articles
+	GraphQlServer         *gqhandler.Server
 }
 
 func (app *Application) Run() error {

@@ -6,10 +6,12 @@ import (
 	"os"
 	"time"
 
+	gqhandler "github.com/99designs/gqlgen/graphql/handler"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/vasugupta1/RSSFeed/backend/internal/background"
 	"github.com/vasugupta1/RSSFeed/backend/internal/client"
 	"github.com/vasugupta1/RSSFeed/backend/internal/config"
+	"github.com/vasugupta1/RSSFeed/backend/internal/graph"
 	"github.com/vasugupta1/RSSFeed/backend/internal/handler"
 	"github.com/vasugupta1/RSSFeed/backend/internal/messaging"
 	event "github.com/vasugupta1/RSSFeed/backend/internal/models"
@@ -60,6 +62,7 @@ func main() {
 
 	// Initialize clients
 	crawlerClient := client.NewCrawlerClient(cfg.CrawlerApiUrl)
+	graphClient := client.NewGraphApiClient(cfg.GraphApiUrl)
 
 	// Initialize services
 	crawlerService := service.NewCrawlerService(crawlerClient, cfg.ApiRateLimitValue)
@@ -85,6 +88,12 @@ func main() {
 	deleteArticleHandler := handler.NewDeleteArticleHandler(respositoryService)
 	syncFeedHandler := handler.NewSyncFeedHandler(respositoryService, articleChannel)
 
+	// Initialize GraphQl resolver
+	graphQlServiceResolver := &graph.Resolver{
+		GraphClient: graphClient,
+	}
+	graphqlServer := gqhandler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: graphQlServiceResolver}))
+
 	// Start the server
 	app := &server.Application{
 		Config:                cfg,
@@ -95,6 +104,7 @@ func main() {
 		ArticleChannel:        articleChannel,
 		DeleteArticleHandler:  deleteArticleHandler,
 		SyncFeedHandler:       syncFeedHandler,
+		GraphQlServer:         graphqlServer,
 	}
 
 	if err := app.Run(); err != nil {
