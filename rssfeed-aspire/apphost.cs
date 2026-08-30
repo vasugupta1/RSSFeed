@@ -54,14 +54,6 @@ var mongo = builder.AddMongoDB("rssfeed")
 
 var mongodb = mongo.AddDatabase("rssfeedurl");
 
-var apacheAgePostgres = builder.AddPostgres("rssfeedpostgres")
-    .WithDataVolume("rssfeedai-data")
-    .WithImage("apache/age", "latest")
-    .WithLifetime(ContainerLifetime.Persistent)
-    .WithPgAdmin();
-
-var graphDb = apacheAgePostgres.AddDatabase("rssfeedontology");
-
 var neo4j = builder.AddContainer("rssfeedneo4j", "neo4j", "5.19")
     .WithVolume("rssfeed-neo4j-data", "/data")
     .WithEnvironment("NEO4J_AUTH", "neo4j/password")
@@ -70,13 +62,6 @@ var neo4j = builder.AddContainer("rssfeedneo4j", "neo4j", "5.19")
     .WithHttpEndpoint(port: 7474, targetPort: 7474, name: "http")
     .WithEndpoint(port: 7687, targetPort: 7687, name: "bolt", scheme: "bolt")
     .WithLifetime(ContainerLifetime.Persistent);
-
-var graphDbMigration = builder.AddContainer("rssfeed-db-migrations", "ghcr.io/amacneil/dbmate")
-    .WithBindMount("../migrations/graph", "/db/migrations") 
-    .WithReference(graphDb)  
-    .WithEnvironment("DATABASE_URL", $"{graphDb.Resource.UriExpression}?sslmode=disable&search_path=public")       
-    .WithArgs("up")                                   
-    .WaitFor(graphDb);
 
 var vectorPostgres = builder.AddPostgres("rssfeed-vectordb")
     .WithDataVolume("rssfeed-vector-data")
@@ -118,7 +103,6 @@ var ai = builder.AddUvicornApp(name: "rssfeedai", appDirectory: "../ai", app: "a
                     .WithReference(llm)
                     .WithReference(ollama)
                     .WithReference(llm)
-                    .WithReference(graphDb)
                     .WithReference(neo4j.GetEndpoint("bolt"))
                     .WithReference(vectorDb)
                     .WithReference(messagingQueues)
@@ -128,7 +112,6 @@ var ai = builder.AddUvicornApp(name: "rssfeedai", appDirectory: "../ai", app: "a
                     .WaitFor(llm)
                     .WaitFor(embeddings)
                     .WaitFor(messagingQueues)
-                    .WaitForCompletion(graphDbMigration)
                     .WaitForCompletion(vectorDbMigration)
                     .WithHttpEndpoint(port: 8001);
 

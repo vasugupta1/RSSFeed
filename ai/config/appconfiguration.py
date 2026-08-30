@@ -4,7 +4,6 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class AppConfiguration(BaseSettings):
     LLM_URI: str = Field(...)
     LLM_MODEL: str = Field(...)
-    DATABASE_URI: str = Field(..., validation_alias="RSSFEEDONTOLOGY_URI")
     NEO4J_URI: str = Field(..., validation_alias= "NEO4J_URI")
     MESSAGING_URI: str = Field(...)
     ONTOLOOGY_QUEUE: str = Field(..., validation_alias= "RABBITMQ_ONTOLOOGY_QUEUE")
