@@ -54,7 +54,7 @@ var mongo = builder.AddMongoDB("rssfeed")
 
 var mongodb = mongo.AddDatabase("rssfeedurl");
 
-var neo4j = builder.AddContainer("rssfeedneo4j", "neo4j", "5.19")
+var neo4j = builder.AddContainer("rssfeedneo4j", "neo4j", "latest")
     .WithVolume("rssfeed-neo4j-data", "/data")
     .WithEnvironment("NEO4J_AUTH", "neo4j/password")
     .WithEnvironment("NEO4J_PLUGINS", "[\"apoc\"]")

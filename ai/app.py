@@ -1,14 +1,13 @@
 import logging
 import os
+from typing import Any
 from fastapi import FastAPI, HTTPException, status
 import uvicorn
 from contextlib import asynccontextmanager
 import asyncio
-from services.articleontology import ArticleOntologyService
+from repository.graphservice import GraphService
 from factories.servicefactory import ServiceContainerBuilder
 from config.appconfiguration import AppConfiguration
-from services.searchservice import SearchService
-from services.crawlpipeline import CrawlPipeline
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(levelname)s: %(message)s")
 config : AppConfiguration = AppConfiguration() # type: ignore[reportCallIssue]
@@ -66,28 +65,13 @@ def healthcheck():
 
     return {"status": "healthy", "checks": service_result} 
 
-@app.get("/api/relationship")
-async def relationship():
-    test : ArticleOntologyService = app.state.onotlogy
-    result =  await test.extract_ontology("fifa")
-    print(result)
-    return {"test": result}
-
 @app.get("/api/search")
-async def search():
-    container = app.state.container
-    search_service : SearchService = container.search_service
-    results = [result async for result in search_service.web_search("fifa")]
-    print(results)
-    return results
+async def relationship():
+    sut: GraphService = app.state.graph_service
 
-
-@app.get("/api/extract")
-async def search():
-    crawler = app.state.async_crawler
-    service = CrawlPipeline(crawler=crawler)
-    result = await service.run("https://seg6.space/posts/phone-server")
-    return result    
+    full_text_result = [f"({row.get('source_type', 'Unknown')}: {row['source_name']}) -[{row['relationship']}]-> ({row.get('target_type', 'Unknown')}: {row['target_name']})" for row in sut.query_by_fulltext("netflix")]
+    key_word_result = [f"({row.get('source_type', 'Unknown')}: {row['source_name']}) -[{row['relationship']}]-> ({row.get('target_type', 'Unknown')}: {row['target_name']})" for row in sut.query_by_keyword("netflix")]
+    return {"full_text_result": full_text_result, "key_word_result": key_word_result}
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000)) 

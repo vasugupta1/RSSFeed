@@ -59,7 +59,7 @@ class CrawlResearchNodes:
                 collect_search_results(query)
                 for query in state["search_queries"]
             ])
-
+        
             return {
                 "search_results": [result 
                                    for query_results in search_results
@@ -164,26 +164,7 @@ class CrawlResearchNodes:
 
             for i, analysis in enumerate(analyses):
                 source_md = enrichment[i].cleaned_markdown if i < len(enrichment) else ""
-
-                # ── Tier 1: heuristic checks ──
-                problems = []
-                if not analysis.title or analysis.title.lower() in ("summary", "untitled", "n/a"):
-                    problems.append("bad_title")
-                if not analysis.keywords or len(analysis.keywords) == 0:
-                    problems.append("no_keywords")
-                if not analysis.summary or len(analysis.summary) == 0:
-                    problems.append("no_summary")
-                if not analysis.article_overview or len(analysis.article_overview) < 50:
-                    problems.append("thin_overview")
-
-                if problems:
-                    logger.warning(
-                        "Research analysis %d/%d failed tier 1 heuristics: %s (title=%s)",
-                        i + 1, len(analyses), problems, analysis.title
-                    )
-                    continue
-
-                # ── Tier 2: LLM coherence check ──
+                # ── Tier 1: LLM coherence check ──
                 try:
                     verdict: ValidationVerdict = await validator.validate(
                         source_markdown=source_md,

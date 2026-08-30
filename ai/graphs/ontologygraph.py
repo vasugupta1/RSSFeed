@@ -61,7 +61,7 @@ class OntologyGraphNodes:
                 docs.extend(list(gen))
                 
             logger.info(f"[OntologyGraph Node: gather_vector_data] Vector search returned {len(docs)} total document chunks.")
-            return {"retrieved_doc": DocumentReducer.merge_docs(docs, existing_docs)}
+            return {"retrieved_doc": DocumentReducer.merge_docs(existing_docs, docs)}
 
         return gather_vector_data
 
@@ -107,6 +107,7 @@ class OntologyGraph:
         )
 
         graph.set_entry_point("gather_vector_data")
+        graph.add_edge("gather_vector_data", "store_relationship_entity")
         graph.add_edge("store_relationship_entity", END)
         return graph.compile()
 
