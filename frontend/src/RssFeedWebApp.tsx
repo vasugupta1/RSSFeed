@@ -5,6 +5,7 @@ import Sidebar from './components/Sidebar';
 import ArticleList from './components/ArticleList';
 import ReaderView from './components/ReaderView';
 import AddFeedModal from './components/AddFeedModal';
+import GraphSearchModal from './components/GraphSearchModal';
 
 interface BackendArticle {
   url?: string;
@@ -23,6 +24,7 @@ function RssFeedWebApp() {
   
   // Custom XML Modal State
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [isGraphModalOpen, setIsGraphModalOpen] = useState<boolean>(false);
   const [feedUrl, setFeedUrl] = useState<string>('');
   const [modalError, setModalError] = useState<string | null>(null);
 
@@ -272,6 +274,7 @@ function RssFeedWebApp() {
         setStarredOnly={setStarredOnly}
         onAddFeedClick={() => setIsModalOpen(true)}
         onSyncClick={handleSync}
+        onGraphSearchClick={() => setIsGraphModalOpen(true)}
         isSyncing={isSyncing}
       />
 
@@ -309,6 +312,11 @@ function RssFeedWebApp() {
         setFeedUrl={setFeedUrl}
         modalError={modalError}
         handleAddFeed={handleAddFeed}
+      />
+      
+      <GraphSearchModal 
+        isOpen={isGraphModalOpen} 
+        onClose={() => setIsGraphModalOpen(false)} 
       />
     </div>
   );

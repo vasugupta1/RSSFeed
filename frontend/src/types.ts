@@ -21,3 +21,20 @@ export interface Feed {
   items: FeedItem[];
   isCustom?: boolean;
 }
+
+export interface Entity {
+  id: string;
+  name: string;
+  type: string;
+}
+
+export interface Relationship {
+  source: string;
+  target: string;
+  type: string;
+}
+
+export interface GetEntitiesRelationshipResponse {
+  nodes: Entity[];
+  edges: Relationship[];
+}

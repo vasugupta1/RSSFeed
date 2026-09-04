@@ -27,6 +27,11 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       },
+      '/query': {
+        target: apiTarget,
+        changeOrigin: true,
+        secure: false,
+      },
       '/otlp': {
         target: otlpTarget,
         changeOrigin: true,

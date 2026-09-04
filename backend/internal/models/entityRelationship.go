@@ -1,18 +1,18 @@
 package models
 
 type Entity struct {
-	Name string `json:"name"`
 	Id   string `json:"id"`
+	Name string `json:"name"`
 	Type string `json:"type"`
 }
 
 type Relationship struct {
-	Source Entity `json:"source"`
-	Target Entity `json:"target"`
+	Source string `json:"source"`
+	Target string `json:"target"`
 	Type   string `json:"type"`
 }
 
-type EntityRelationship struct {
-	Nodes Entity
-	Edges Relationship
+type GetEntitiesRelationshipResponse struct {
+	Nodes []Entity       `json:"nodes"`
+	Edges []Relationship `json:"edges"`
 }

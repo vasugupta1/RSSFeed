@@ -14,7 +14,41 @@ import (
 
 // SearchGraph is the resolver for the searchGraph field.
 func (r *queryResolver) SearchGraph(ctx context.Context, keyword string) (*model1.SearchResult, error) {
-	panic(fmt.Errorf("not implemented: SearchGraph - searchGraph"))
+	apiResp, err := r.GraphClient.GetEntitiesRelationship(ctx, keyword)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get entities relationship: %w", err)
+	}
+
+	searchResult := &model1.SearchResult{
+		Nodes: make([]*model1.Entity, 0, len(apiResp.Nodes)),
+		Edges: make([]*model1.Relationship, 0, len(apiResp.Edges)),
+	}
+
+	entityMap := make(map[string]*model1.Entity)
+
+	for _, n := range apiResp.Nodes {
+		entity := &model1.Entity{
+			ID:   n.Id,
+			Name: n.Name,
+			Type: n.Type,
+		}
+		searchResult.Nodes = append(searchResult.Nodes, entity)
+		entityMap[n.Id] = entity
+	}
+
+	for _, e := range apiResp.Edges {
+		sourceEnt, okSrc := entityMap[e.Source]
+		targetEnt, okTgt := entityMap[e.Target]
+		if okSrc && okTgt {
+			searchResult.Edges = append(searchResult.Edges, &model1.Relationship{
+				Source: sourceEnt,
+				Target: targetEnt,
+				Type:   e.Type,
+			})
+		}
+	}
+
+	return searchResult, nil
 }
 
 // Query returns QueryResolver implementation.
