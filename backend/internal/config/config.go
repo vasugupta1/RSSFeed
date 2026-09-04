@@ -1,6 +1,8 @@
 package config
 
-import "os"
+import (
+	"os"
+)
 
 type APIConfiguration struct {
 	Port                      string
@@ -19,8 +21,8 @@ type APIConfiguration struct {
 func Load() APIConfiguration {
 	return APIConfiguration{
 		Port:                      GetEnv("PORT", "8080"),
-		CrawlerApiUrl:             GetEnv("services__rssfeedai__http__0", GetEnv("services__rssfeedai__https__0", "http://localhost:8001")),
-		GraphApiUrl:               GetEnv("services__rssfeedai__http__0", GetEnv("services__rssfeedai__https__0", "http://localhost:8001")),
+		CrawlerApiUrl:             GetEnv("services__rssfeedai__https__0", "https://localhost:8001"),
+		GraphApiUrl:               GetEnv("services__rssfeedai__https__0", "https://localhost:8001"),
 		CosmosConnectionString:    GetEnv("ConnectionStrings__rssfeedurl", ""),
 		DatabaseName:              "rssfeedurl",
 		CollectionNames:           []string{"feedurl", "feedarticle"},

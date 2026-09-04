@@ -34,7 +34,7 @@ class GraphService:
 
     def insert_to_graph_doc(self, doc: Document) -> None:
         graph_docs = self.graph_transfomer.convert_to_graph_documents([doc])
-        logger.info(f"[GraphService] graph_docs created", graph_docs)
+        logger.info("[GraphService] graph_docs created: %s", graph_docs)
         self.graph.add_graph_documents(
             graph_docs,
             baseEntityLabel=True, 
