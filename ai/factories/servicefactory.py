@@ -15,6 +15,7 @@ from services.researchanalysis import ResearchGeneratorService
 from graphs.crawlurlgraph import CrawlEventGraph
 from graphs.researcheventgraph import CrawlResearchGraph
 from graphs.ontologygraph import OntologyGraph
+from handlers.getentitiesrelationship import GetEntitiesRelationshipHandler
 
 class ServiceContainer:
     """Holds all initialized service singletons."""
@@ -31,6 +32,7 @@ class ServiceContainer:
         self.crawl_research_event_consumer: CrawlResearchEventConsumer | None = None
         self.crawl_ontology_event_consumer: CrawlOntologyEventConsumer | None = None
         self.analysis_validator : AnalysisValidator | None = None
+        self.get_entities_relationship_handler: GetEntitiesRelationshipHandler | None = None
        
     def attach_to_app(self, app: FastAPI):
         """Binds initialized services into app.state."""
@@ -45,6 +47,7 @@ class ServiceContainer:
         app.state.crawl_research_event_consumer = self.crawl_research_event_consumer
         app.state.crawl_ontology_event_consumer = self.crawl_ontology_event_consumer
         app.state.analysis_validator = self.analysis_validator
+        app.state.get_entities_relationship_handler = self.get_entities_relationship_handler
 
     async def cleanup(self):
         """Gracefully close open resources on shutdown."""
@@ -102,6 +105,16 @@ class ServiceContainerBuilder:
                     url=self.config.LLM_URI,
                     model=self.config.LLM_MODEL
                 )
+        return self
+
+    def build_api_handler(self) -> "ServiceContainerBuilder":
+        if not self._container.graph_service:
+            raise RuntimeError(
+                "graph service has not been configured correctly for api handlers"
+            )
+        self._container.get_entities_relationship_handler = GetEntitiesRelationshipHandler(
+            graph_service= self._container.graph_service
+        )
         return self
 
     def build_crawl_event_background_service(self) ->  "ServiceContainerBuilder":
