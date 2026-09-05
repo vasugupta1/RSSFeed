@@ -23,4 +23,4 @@ class AppConfiguration(BaseSettings):
     OTEL_EXPORTER_OTLP_ENDPOINT: str | None = Field(default=None)
     OTEL_SERVICE_NAME: str = Field(default="research-worker")
 
-    model_config = SettingsConfigDict(extra="ignore")
+    model_config = SettingsConfigDict(extra="ignore", env_file=".env")
