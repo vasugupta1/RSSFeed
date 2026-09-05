@@ -2,6 +2,8 @@ from messaging.aiomessagingservice import AsyncMessagingService
 from asyncio.events import AbstractEventLoop
 from graphs.researcheventgraph import CrawlResearchGraph
 import logging
+import time
+from opentelemetry import metrics
 from models.articleanalysisevent import ArticleAnalysisEvent
 
 logger = logging.getLogger(__name__)
@@ -15,7 +17,24 @@ class CrawlResearchEventConsumer:
         self.crawl_research_graph = crawl_research_graph
         self.queue_name = queue_name
 
+        # Initialize Metrics
+        meter = metrics.get_meter("rssfeed.researchworker")
+        self.research_processed_counter = meter.create_counter(
+            "research.events.processed",
+            description="Total number of research events successfully processed"
+        )
+        self.research_failed_counter = meter.create_counter(
+            "research.events.failed",
+            description="Total number of research events failed"
+        )
+        self.research_duration = meter.create_histogram(
+            "research.duration",
+            description="Time taken to process a research event",
+            unit="s"
+        )
+
     async def _process_message(self, result: dict) -> None:
+        start_time = time.time()
         try:
             logger.info("Processing crawl research event: %s", result)
             event = ArticleAnalysisEvent.model_validate(result)
@@ -29,8 +48,12 @@ class CrawlResearchEventConsumer:
                 "max_results": 1,
             })
 
+            duration = time.time() - start_time
+            self.research_duration.record(duration)
+            self.research_processed_counter.add(1)
             logger.info("Successfully processed crawl research event for: %s", event.url)
         except Exception as e:
+            self.research_failed_counter.add(1)
             logger.error("Failed to process research crawl event: %s", e, exc_info=True)
 
     async def run_consumer(self):

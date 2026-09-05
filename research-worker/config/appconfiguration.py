@@ -19,4 +19,8 @@ class AppConfiguration(BaseSettings):
     EMBEDDING_MODEL: str = Field(..., validation_alias="EMBEDDINGS_MODEL")
     EMBEDDING_URI: str = Field(..., validation_alias="EMBEDDINGS_URI")
 
+    # Metrics Telemetry (Injected automatically by Aspire)
+    OTEL_EXPORTER_OTLP_ENDPOINT: str | None = Field(default=None)
+    OTEL_SERVICE_NAME: str = Field(default="research-worker")
+
     model_config = SettingsConfigDict(extra="ignore")

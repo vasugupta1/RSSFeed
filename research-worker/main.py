@@ -1,6 +1,12 @@
 import asyncio
 import logging
 import signal
+from opentelemetry import metrics
+from opentelemetry.sdk.metrics import MeterProvider
+from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
+from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
+from opentelemetry.sdk.resources import Resource, SERVICE_NAME
+
 from config.appconfiguration import AppConfiguration
 from factories.servicefactory import WorkerServiceContainer
 
@@ -10,9 +16,28 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+def setup_telemetry(config: AppConfiguration):
+    """Initialises OpenTelemetry metrics using configuration."""
+    if not config.OTEL_EXPORTER_OTLP_ENDPOINT:
+        logger.warning("No OTEL_EXPORTER_OTLP_ENDPOINT found in config. Metrics will not be exported.")
+        return
+
+    resource = Resource(attributes={SERVICE_NAME: config.OTEL_SERVICE_NAME})
+
+    exporter = OTLPMetricExporter(
+        endpoint=config.OTEL_EXPORTER_OTLP_ENDPOINT, 
+        insecure=True
+    ) 
+    reader = PeriodicExportingMetricReader(exporter, export_interval_millis=5000)
+    
+    provider = MeterProvider(resource=resource, metric_readers=[reader])
+    metrics.set_meter_provider(provider)
+    logger.info(f"OpenTelemetry metrics configured for service: {config.OTEL_SERVICE_NAME} at {config.OTEL_EXPORTER_OTLP_ENDPOINT}")
+
 
 async def main():
     config = AppConfiguration()  # type: ignore[reportCallIssue]
+    setup_telemetry(config)
     container = await WorkerServiceContainer.build(config)
 
     tasks: list[asyncio.Task] = []

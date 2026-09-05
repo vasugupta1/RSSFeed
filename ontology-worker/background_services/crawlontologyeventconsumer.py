@@ -1,5 +1,7 @@
 import asyncio
 import logging
+import time
+from opentelemetry import metrics
 from messaging.aiomessagingservice import AsyncMessagingService
 from models.ontologyevent import OntologyEvent
 from graphs.ontologygraph import OntologyGraph
@@ -16,7 +18,24 @@ class CrawlOntologyEventConsumer:
         self.messaging_uri = messaging_uri
         self.ontology_graph = ontology_graph
 
+        # Initialize Metrics
+        meter = metrics.get_meter("rssfeed.ontologyworker")
+        self.ontology_processed_counter = meter.create_counter(
+            "ontology.events.processed",
+            description="Total number of ontology events successfully processed"
+        )
+        self.ontology_failed_counter = meter.create_counter(
+            "ontology.events.failed",
+            description="Total number of ontology events failed"
+        )
+        self.ontology_duration = meter.create_histogram(
+            "ontology.duration",
+            description="Time taken to process an ontology event",
+            unit="s"
+        )
+
     async def _process_message(self, result: dict) -> None:
+        start_time = time.time()
         try:
             logger.info("Processing crawl ontology event: %s", result)
             event = OntologyEvent.model_validate(result)
@@ -32,8 +51,12 @@ class CrawlOntologyEventConsumer:
                 "search_queries": event.search_queries,
             })
 
+            duration = time.time() - start_time
+            self.ontology_duration.record(duration)
+            self.ontology_processed_counter.add(1)
             logger.info("Successfully processed ontology event for: %s", event.title)
         except Exception as e:
+            self.ontology_failed_counter.add(1)
             logger.error("Failed to process ontology crawl event: %s", e, exc_info=True)
 
     async def run_consumer(self):

@@ -19,3 +19,8 @@ psycopg[binary]
 pydantic
 pydantic-settings
 python-dotenv
+
+# OpenTelemetry (Metrics for Aspire Dashboard)
+opentelemetry-api
+opentelemetry-sdk
+opentelemetry-exporter-otlp
