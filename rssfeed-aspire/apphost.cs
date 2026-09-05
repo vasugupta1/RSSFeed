@@ -115,6 +115,49 @@ var ai = builder.AddUvicornApp(name: "rssfeedai", appDirectory: "../ai", app: "a
                     .WaitForCompletion(vectorDbMigration)
                     .WithHttpEndpoint(port: 8001);
 
+var crawlerConsumer = builder.AddPythonApp(name: "crawlerconsumer", appDirectory: "../crawl-worker", scriptPath: "main.py")
+            .WithEnvironment("RABBITMQ_CRAWL_QUEUE", articleCrawlEvent)
+            .WithEnvironment("RABBITMQ_CRAWL_EXCHANGE", articleCrawlExchange)
+            .WithReference(ollama)
+            .WithReference(llm)
+            .WithReference(embeddings)
+            .WithReference(vectorDb)
+            .WithReference(messagingQueues)
+            .WaitFor(llm)
+            .WaitFor(embeddings)
+            .WaitFor(messagingQueues)
+            .WaitForCompletion(vectorDbMigration);
+
+var researchConsumer = builder.AddPythonApp(name: "researchconsumer", appDirectory: "../research-worker", scriptPath: "main.py")
+            .WithEnvironment("RABITMQ_CRAWL_RESEARCH_QUEUE", articleResearchEvent)
+            .WithEnvironment("RABBITMQ_ONTOLOOGY_QUEUE", articleOntologyEvent)
+            .WithReference(ollama)
+            .WithReference(llm)
+            .WithReference(embeddings)
+            .WithReference(vectorDb)
+            .WithReference(messagingQueues)
+            .WaitFor(llm)
+            .WaitFor(embeddings)
+            .WaitFor(messagingQueues)
+            .WaitForCompletion(vectorDbMigration);
+
+var ontologyConsumer = builder.AddPythonApp(name: "ontologyconsumer", appDirectory: "../ontology-worker", scriptPath: "main.py")
+            .WithEnvironment("RABBITMQ_ONTOLOOGY_QUEUE", articleOntologyEvent)
+            .WithEnvironment("NEO4J_URI", "bolt://neo4j:password@localhost:7687")
+            .WithReference(neo4j.GetEndpoint("bolt"))
+            .WithReference(ollama)
+            .WithReference(llm)
+            .WithReference(embeddings)
+            .WithReference(vectorDb)
+            .WithReference(messagingQueues)
+            .WaitFor(neo4j)
+            .WaitFor(llm)
+            .WaitFor(embeddings)
+            .WaitFor(messagingQueues)
+            .WaitForCompletion(vectorDbMigration);
+
+
+
 //#####################BFF#####################################
 
 var rssfeedwebapp = builder
