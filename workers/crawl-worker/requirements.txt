@@ -1,0 +1,27 @@
+# LLM & AI
+langchain-core
+langchain-ollama
+langchain-postgres
+langchain-text-splitters
+langgraph
+
+# Crawling (requires Playwright browser binaries)
+Crawl4AI
+trafilatura
+
+# Messaging
+aio-pika
+
+# Database
+psycopg2-binary
+psycopg[binary]
+
+# Core
+pydantic
+pydantic-settings
+python-dotenv
+
+# OpenTelemetry (Metrics for Aspire Dashboard)
+opentelemetry-api
+opentelemetry-sdk
+opentelemetry-exporter-otlp

@@ -1,0 +1,26 @@
+# LLM & AI
+langchain-core
+langchain-ollama
+langchain-neo4j
+langchain-experimental
+langchain-postgres
+langchain-text-splitters
+langgraph
+
+# Messaging
+aio-pika
+
+# Database
+neo4j
+psycopg2-binary
+psycopg[binary]
+
+# Core
+pydantic
+pydantic-settings
+python-dotenv
+
+# OpenTelemetry (Metrics for Aspire Dashboard)
+opentelemetry-api
+opentelemetry-sdk
+opentelemetry-exporter-otlp

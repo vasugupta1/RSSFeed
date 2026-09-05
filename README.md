@@ -14,21 +14,21 @@ An AI-powered RSS news aggregator that subscribes to RSS feeds, crawls articles,
 
 ## Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                     .NET Aspire Orchestrator                    │
-│              (single command to start everything)               │
-└──────────────────────────┬──────────────────────────────────────┘
-                           │ provisions & wires up
-       ┌───────────────────┼───────────────────────┐
+```text
+┌─────────────────────────────────────────────────────────────────────────┐
+│                       .NET Aspire Orchestrator                          │
+│                 (single command to start everything)                    │
+└───────────────────────────────────┬─────────────────────────────────────┘
+                                    │ provisions & wires up
+       ┌───────────────────┬────────┴──────────────┐
        ▼                   ▼                       ▼
 ┌─────────────┐   ┌──────────────┐   ┌──────────────────────────┐
-│  Frontend   │   │   Go BFF     │   │    Python AI Service     │
-│  React/Vite │──▶│   Chi Router │──▶│    FastAPI + LangGraph   │
-│  :8003      │   │   :8002      │   │    :8001                 │
-└─────────────┘   └──────┬───────┘   └────────┬─────────────────┘
-                         │                    │
-                  ┌──────▼───────┐            │
+│  Frontend   │   │   Go BFF     │   │    Python Services       │
+│  React/Vite │──▶│   Chi Router │──▶│ - API (FastAPI)           │
+│  :8003      │   │   :8002      │   │ - Crawl Worker           │
+└─────────────┘   └──────┬───────┘   │ - Research Worker        │
+                         │           │ - Ontology Worker        │
+                  ┌──────▼───────┐   └────────┬─────────────────┘
                   │   RabbitMQ   │◀───────────┘
                   │  (messaging) │
                   └──────┬───────┘
@@ -94,32 +94,30 @@ internal/
 **Data flow:**
 1. User adds an RSS feed URL → BFF fetches the RSS XML, parses items, saves the feed to MongoDB
 2. The BFF publishes events to RabbitMQ queues (e.g., `rssfeed-article-crawl-event`) 
-3. The Python AI service consumes the events asynchronously and performs heavy processing (crawling, research, ontology extraction)
+3. The Python microservices consume the events asynchronously and perform heavy processing
 4. On startup, another background worker reloads all saved feeds and re-fetches new articles
 
 **Key dependencies:** `go-chi/chi`, `mongo-driver/v2`, `rabbitmq`
 
 ---
 
-### 3. Python AI Service — FastAPI + LangGraph + Crawl4AI + RabbitMQ
+### 3. Python AI Microservices
+
+The intelligence layer is split into four distinct, scalable Python projects:
 
 | | |
 |---|---|
-| **Path** | `ai/` |
-| **Tech** | Python 3.13, FastAPI, Uvicorn, LangGraph, Ollama, Crawl4AI, Playwright, aio_pika |
-| **Purpose** | Web scraping, AI-powered article summarisation, and ontology extraction |
+| **API** (`ai/`) | Lightweight FastAPI REST server providing ad-hoc HTTP endpoints and UI-facing queries. |
+| **Crawl Worker** (`crawl-worker/`) | Uses Playwright/Crawl4AI to scrape raw HTML into clean Markdown. Runs LLMs to extract summaries and keywords, then publishes results to an exchange. |
+| **Research Worker** (`research-worker/`) | Consumes research events, uses LLMs to generate high-quality DuckDuckGo queries, crawls the results, and publishes enriched topics to the ontology queue. |
+| **Ontology Worker** (`worker/`) | Processes keywords and concepts using LangChain/LangGraph to construct a connected knowledge graph in Neo4j. |
 
-This is the intelligence layer, recently refactored to use robust async messaging and LangGraph workflows:
+**Key highlights:**
+1. **Separation of Concerns**: By splitting the monolith, headless browsers (Playwright) are isolated strictly to the crawl and research workers, while graph DB (Neo4j) drivers are isolated to the ontology worker.
+2. **LangGraph State Graphs**: Resilient workflows for crawling and research are modeled as graphs with smart retry loops and fallback LLM validation.
+3. **Async Messaging**: Dedicated `aio_pika` connections stream messages into the pipelines, handling RabbitMQ ACKs automatically upon graph completion.
 
-1. **Messaging Integration**: Uses `aio_pika` to consume RabbitMQ messages and dispatch them to the appropriate LangGraph state graphs.
-2. **LangGraph State Graphs**: Workflows are modeled as graphs (`crawlurlgraph`, `researcheventgraph`, `ontologygraph`) for resilient multi-step execution.
-3. **Crawls the URL** using a two-tier strategy:
-   - *Fast path:* `httpx` direct fetch with 5s timeout → parse HTML to markdown
-   - *Slow path:* Full headless browser crawl via Playwright (if the fast path fails)
-4. **Summarises the article** using LLMs via LangChain's structured output to extract title, bullet-point summary, keywords, and country.
-5. **Extracts ontology** using LLMs to build a knowledge graph of entities and relationships (persisted to Neo4j).
-
-**Key dependencies:** `fastapi`, `uvicorn`, `crawl4ai`, `langchain-ollama`, `langgraph`, `playwright`, `httpx`, `aio_pika`
+**Key dependencies:** `fastapi`, `langchain-ollama`, `langgraph`, `crawl4ai`, `playwright`, `httpx`, `aio_pika`, `neo4j`
 
 ---
 
