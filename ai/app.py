@@ -4,7 +4,6 @@ from typing import Any
 from fastapi import FastAPI, HTTPException, status, Depends
 import uvicorn
 from contextlib import asynccontextmanager
-import asyncio
 from repository.graphservice import GraphService
 from factories.servicefactory import ServiceContainerBuilder
 from config.appconfiguration import AppConfiguration
@@ -17,18 +16,9 @@ config : AppConfiguration = AppConfiguration() # type: ignore[reportCallIssue]
 async def lifespan(app: FastAPI):
     builder = ServiceContainerBuilder(config= config)
     container = (await builder.build_infrastructure())
-    container = (
-        builder.build_domain_services()
-               .build_api_handler()
-               .build_crawl_event_background_service()
-               .build_crawl_research_event_background_service()
-               .build_crawl_ontology_event_background_service()
-               .build()
-    )
+    container = builder.build_api_handler().build()
     container.attach_to_app(app)
     app.state.container = container
-
-
     yield
 
     await container.cleanup()
@@ -51,15 +41,6 @@ def healthcheck():
         )
 
     return {"status": "healthy", "checks": service_result} 
-
-@app.get("/api/search")
-async def relationship():
-    sut: GraphService = app.state.graph_service
-
-    full_text_result = [f"({row.get('source_type', 'Unknown')}: {row['source_name']}) -[{row['relationship']}]-> ({row.get('target_type', 'Unknown')}: {row['target_name']})" for row in sut.query_by_fulltext("netflix")]
-    key_word_result = [f"({row.get('source_type', 'Unknown')}: {row['source_name']}) -[{row['relationship']}]-> ({row.get('target_type', 'Unknown')}: {row['target_name']})" for row in sut.query_by_keyword("netflix")]
-    return {"full_text_result": full_text_result, "key_word_result": key_word_result}
-
 
 @app.get("/api/relationship", response_model= GetEntitiesRelationshipResponse, status_code= status.HTTP_200_OK)
 async def get_relationship(response: Response, query: GetEntitiesRelationshipQuery = Depends()) -> GetEntitiesRelationshipResponse:
