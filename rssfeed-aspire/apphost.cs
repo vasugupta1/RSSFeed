@@ -115,7 +115,7 @@ var ai = builder.AddUvicornApp(name: "rssfeedai", appDirectory: "../ai", app: "a
                     .WaitForCompletion(vectorDbMigration)
                     .WithHttpEndpoint(port: 8001);
 
-var crawlerConsumer = builder.AddPythonApp(name: "crawlerconsumer", appDirectory: "../crawl-worker", scriptPath: "main.py")
+var crawlerConsumer = builder.AddPythonApp(name: "crawlerconsumer", appDirectory: "../workers/crawl-worker", scriptPath: "main.py")
             .WithEnvironment("RABBITMQ_CRAWL_QUEUE", articleCrawlEvent)
             .WithEnvironment("RABBITMQ_CRAWL_EXCHANGE", articleCrawlExchange)
             .WithReference(ollama)
@@ -128,7 +128,7 @@ var crawlerConsumer = builder.AddPythonApp(name: "crawlerconsumer", appDirectory
             .WaitFor(messagingQueues)
             .WaitForCompletion(vectorDbMigration);
 
-var researchConsumer = builder.AddPythonApp(name: "researchconsumer", appDirectory: "../research-worker", scriptPath: "main.py")
+var researchConsumer = builder.AddPythonApp(name: "researchconsumer", appDirectory: "../workers/research-worker", scriptPath: "main.py")
             .WithEnvironment("RABITMQ_CRAWL_RESEARCH_QUEUE", articleResearchEvent)
             .WithEnvironment("RABBITMQ_ONTOLOOGY_QUEUE", articleOntologyEvent)
             .WithReference(ollama)
@@ -141,7 +141,7 @@ var researchConsumer = builder.AddPythonApp(name: "researchconsumer", appDirecto
             .WaitFor(messagingQueues)
             .WaitForCompletion(vectorDbMigration);
 
-var ontologyConsumer = builder.AddPythonApp(name: "ontologyconsumer", appDirectory: "../ontology-worker", scriptPath: "main.py")
+var ontologyConsumer = builder.AddPythonApp(name: "ontologyconsumer", appDirectory: "../workers/ontology-worker", scriptPath: "main.py")
             .WithEnvironment("RABBITMQ_ONTOLOOGY_QUEUE", articleOntologyEvent)
             .WithEnvironment("NEO4J_URI", "bolt://neo4j:password@localhost:7687")
             .WithReference(neo4j.GetEndpoint("bolt"))
@@ -159,7 +159,6 @@ var ontologyConsumer = builder.AddPythonApp(name: "ontologyconsumer", appDirecto
 
 
 //#####################BFF#####################################
-
 var rssfeedwebapp = builder
                     .AddGolangApp("rssfeedwebapp", "../backend/cmd/server")
                     .WithHttpEndpoint(env: "PORT", port: 8002)
