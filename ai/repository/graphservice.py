@@ -42,9 +42,9 @@ class GraphService:
 
     def query_by_keyword(self, keyword: str) -> list[Dict[str, Any]]:
         cypher_query = """
-        MATCH (source)
+        MATCH (source:__Entity__)
         WHERE toLower(source.id) CONTAINS toLower($keyword)
-        MATCH (source)-[r]-(target)
+        MATCH (source)-[r]-(target:__Entity__)
         RETURN 
             labels(source)[0] AS source_type,
             source.id AS source_name,
@@ -57,7 +57,7 @@ class GraphService:
     def query_by_fulltext(self, search_term: str) -> list[Dict[str, Any]]:
         cypher_query = """
         CALL db.index.fulltext.queryNodes("entityIndex", $search_term) YIELD node AS source, score
-        MATCH (source)-[r]-(target)
+        MATCH (source)-[r]-(target:__Entity__)
         RETURN 
             labels(source)[0] AS source_type,
             source.id AS source_name,

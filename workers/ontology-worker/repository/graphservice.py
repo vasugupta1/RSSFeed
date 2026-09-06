@@ -38,33 +38,4 @@ class GraphService:
         self.graph.add_graph_documents(
             graph_docs,
             baseEntityLabel=True, 
-            include_source=True)
-
-    def query_by_keyword(self, keyword: str) -> list[Dict[str, Any]]:
-        cypher_query = """
-        MATCH (source)
-        WHERE toLower(source.id) CONTAINS toLower($keyword)
-        MATCH (source)-[r]-(target)
-        RETURN 
-            labels(source)[0] AS source_type,
-            source.id AS source_name,
-            type(r) AS relationship,
-            labels(target)[0] AS target_type,
-            target.id AS target_name
-        """
-        return self.graph.query(cypher_query, params={"keyword": keyword})
-
-    def query_by_fulltext(self, search_term: str) -> list[Dict[str, Any]]:
-        cypher_query = """
-        CALL db.index.fulltext.queryNodes("entityIndex", $search_term) YIELD node AS source, score
-        MATCH (source)-[r]-(target)
-        RETURN 
-            labels(source)[0] AS source_type,
-            source.id AS source_name,
-            type(r) AS relationship,
-            labels(target)[0] AS target_type,
-            target.id AS target_name,
-            score
-        ORDER BY score DESC
-        """
-        return self.graph.query(cypher_query, params={"search_term": f"{search_term}*"})
+            include_source=False)
