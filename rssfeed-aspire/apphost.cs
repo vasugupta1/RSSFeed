@@ -85,13 +85,15 @@ var ollama = builder.AddOllama("ollama")
                     .WithEnvironment("HSA_OVERRIDE_GFX_VERSION", "11.0.0")
                     .WithEnvironment("HIP_VISIBLE_DEVICES", "0")
                     .WithEnvironment("RUST_LOG", "debug")
+                    .WithEnvironment("OLLAMA_NUM_PARALLEL", "100")
+                    .WithEnvironment("OLLAMA_IGPU_ENABLE", "1")
                     .WithOpenWebUI()
                     .WithGPUSupport(OllamaGpuVendor.AMD)
                     .WithImageTag("rocm")
                     .WithEnvironment("OLLAMA_CONTEXT_LENGTH", "16384")
                     .WithContainerRuntimeArgs("--device", "/dev/kfd", "--device", "/dev/dri");
         
-var llm = ollama.AddModel("llm", "gemma4:e2b");
+var llm = ollama.AddModel("llm", "llama3.1:8b");
 var embeddings = ollama.AddModel("embeddings", "nomic-embed-text");
 var ai = builder.AddUvicornApp(name: "rssfeedai", appDirectory: "../ai", app: "app:app")
                     .WithEnvironment("RABBITMQ_ONTOLOOGY_QUEUE", articleOntologyEvent)

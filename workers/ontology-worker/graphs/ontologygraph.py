@@ -70,11 +70,9 @@ class OntologyGraphNodes:
         async def store_relationship_entity(state: OntologyGraphState) -> dict:
             docs = state.get("retrieved_doc", [])
             logger.info(f"[OntologyGraph Node: store_relationship_entity] Storing relationships for {len(docs)} documents into Neo4j graph database.")
-            
-            for i, doc in enumerate(docs):
-                logger.info(f"[OntologyGraph Node: store_relationship_entity] Processing document {i + 1}/{len(docs)} (Length: {len(doc.page_content)} chars)")
-                graph_service.insert_to_graph_doc(doc)
-                
+
+            graph_service.insert_to_graph_docs(docs)
+                  
             logger.info("[OntologyGraph Node: store_relationship_entity] Graph database storage complete.")
             return {}
 

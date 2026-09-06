@@ -25,15 +25,29 @@ class GraphService:
             )
         except Exception as e:
             logger.error(f"Failed to create fulltext index 'entityIndex': {e}")
-            
+
+        allowed_nodes = ["Person", "Organization", "Location", "Concept", "Technology"]
+        allowed_relationships = ["RELATES_TO", "PART_OF", "FOUNDED", "LOCATED_IN", "USES"]
+
         self.graph_transfomer = LLMGraphTransformer(llm = ChatOllama(
             model = model,
             base_url= llm_url,
-            temperature= 0.0
-        ))
+            temperature= 0.0, stop=["<unused49>", "<end_of_turn>", "<eos>"],
+            num_ctx=8192
+        ),
+        allowed_nodes = allowed_nodes,
+        allowed_relationships = allowed_relationships)
 
-    def insert_to_graph_doc(self, doc: Document) -> None:
-        graph_docs = self.graph_transfomer.convert_to_graph_documents([doc])
+    
+    def insert_to_graph_docs(self, docs: list[Document]) -> None:
+        if not docs or len(docs) == 0:
+            return
+
+        graph_docs = self.graph_transfomer.convert_to_graph_documents(docs)
+
+        if not graph_docs:
+            return
+
         logger.info("[GraphService] graph_docs created: %s", graph_docs)
         self.graph.add_graph_documents(
             graph_docs,
